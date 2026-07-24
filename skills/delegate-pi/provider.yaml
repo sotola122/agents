@@ -1,0 +1,18 @@
+# Default Pi provider/model for delegate-pi.
+# Override only when the user names different values.
+
+provider: openai-codex
+model: gpt-5.6-sol
+thinking: medium
+
+# Optional connectivity check — cheap model when the user asks to smoke-test Pi.
+smoke:
+  model: gpt-5.6-luna
+  thinking: low
+
+thinking_by_task:
+  smoke: low
+  light_review: medium
+  review: high
+  deep_review: xhigh
+  critical: max  # Pi-supported --thinking level

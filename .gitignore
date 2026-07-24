@@ -1,0 +1,8 @@
+# External sync cache and machine-local defaults
+/.cache/
+/apply.local.toml
+/assets.local.toml
+
+# Python
+__pycache__/
+*.py[cod]

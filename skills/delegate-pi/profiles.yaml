@@ -1,0 +1,37 @@
+# Permission profiles for delegate-pi.
+# Always pass an explicit tools allowlist (or no_tools: true).
+# --tools is a model allowlist, not an OS sandbox.
+# Any profile that includes bash is writable via the shell.
+
+defaults:
+  print: true
+  no_session: true
+  no_extensions: true
+  no_skills: true
+  no_prompt_templates: true
+  no_context_files: true
+  no_approve: true
+
+profiles:
+  review:
+    purpose: code/design/security review; static bug hunt
+    tools: [read, grep, find, ls]
+    writable: false
+
+  verify:
+    purpose: build, test, lint, static analysis, reproduce
+    tools: [read, grep, find, ls, bash]
+    # bash can rewrite files; prompt "do not edit" is not a technical guarantee
+    writable: true
+    # After the run: compare status + content hashes/diffs (incl. already-dirty paths);
+    # prefer a disposable worktree; note ignored-output limits
+
+  implement:
+    purpose: feature, fix, refactor, add tests (user must ask explicitly)
+    tools: [read, grep, find, ls, edit, write, bash]
+    writable: true
+
+  no-tools:
+    purpose: judge only provided text/diff; no repo exploration
+    no_tools: true
+    writable: false

@@ -1,0 +1,297 @@
+schema_version = 1
+
+[apply]
+default_kinds = ["skill", "agent", "context"]
+default_harnesses = ["cursor"]
+allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared"]
+
+[[sources]]
+id = "mattpocock-skills"
+url = "https://github.com/mattpocock/skills.git"
+rev = "ed37663cc5fbef691ddfecd080dff42f7e7e350d"
+license = "MIT"
+
+[[sources]]
+id = "cognitive-rhythm-writing"
+url = "https://gist.github.com/eb2929f13ed19c97188393d297be8432.git"
+rev = "a3b1e26beced71d582e13314fb6f5b179b023c76"
+license = "Unlicense"
+
+[[sources]]
+id = "japanese-tech-writing"
+url = "https://gist.github.com/fd287c3133457c4fd8f5601d34aa817d.git"
+rev = "209db7d6d19bc4727139844c0e8d786542e9ff68"
+license = "Unlicense"
+
+[[assets]]
+id = "mattpocock/ask-matt"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/ask-matt"
+target = "skills/ask-matt"
+
+[[assets]]
+id = "mattpocock/code-review"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/code-review"
+target = "skills/code-review"
+
+[[assets]]
+id = "mattpocock/codebase-design"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/codebase-design"
+target = "skills/codebase-design"
+
+[[assets]]
+id = "mattpocock/diagnosing-bugs"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/diagnosing-bugs"
+target = "skills/diagnosing-bugs"
+
+[[assets]]
+id = "mattpocock/domain-modeling"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/domain-modeling"
+target = "skills/domain-modeling"
+
+[[assets]]
+id = "mattpocock/grill-with-docs"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/grill-with-docs"
+target = "skills/grill-with-docs"
+
+[[assets]]
+id = "mattpocock/implement"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/implement"
+target = "skills/implement"
+
+[[assets]]
+id = "mattpocock/improve-codebase-architecture"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/improve-codebase-architecture"
+target = "skills/improve-codebase-architecture"
+
+[[assets]]
+id = "mattpocock/prototype"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/prototype"
+target = "skills/prototype"
+
+[[assets]]
+id = "mattpocock/research"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/research"
+target = "skills/research"
+
+[[assets]]
+id = "mattpocock/resolving-merge-conflicts"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/resolving-merge-conflicts"
+target = "skills/resolving-merge-conflicts"
+
+[[assets]]
+id = "mattpocock/setup-matt-pocock-skills"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/setup-matt-pocock-skills"
+target = "skills/setup-matt-pocock-skills"
+
+[[assets]]
+id = "mattpocock/tdd"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/tdd"
+target = "skills/tdd"
+
+[[assets]]
+id = "mattpocock/to-spec"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/to-spec"
+target = "skills/to-spec"
+
+[[assets]]
+id = "mattpocock/to-tickets"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/to-tickets"
+target = "skills/to-tickets"
+
+[[assets]]
+id = "mattpocock/triage"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/triage"
+target = "skills/triage"
+
+[[assets]]
+id = "mattpocock/wayfinder"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/wayfinder"
+target = "skills/wayfinder"
+
+[[assets]]
+id = "mattpocock/batch-grill-me"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/batch-grill-me"
+target = "skills/batch-grill-me"
+
+[[assets]]
+id = "mattpocock/claude-handoff"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/claude-handoff"
+target = "skills/claude-handoff"
+
+[[assets]]
+id = "mattpocock/loop-me"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/loop-me"
+target = "skills/loop-me"
+
+[[assets]]
+id = "mattpocock/setup-ts-deep-modules"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/setup-ts-deep-modules"
+target = "skills/setup-ts-deep-modules"
+
+[[assets]]
+id = "mattpocock/to-questionnaire"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/to-questionnaire"
+target = "skills/to-questionnaire"
+
+[[assets]]
+id = "mattpocock/wizard"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/wizard"
+target = "skills/wizard"
+
+[[assets]]
+id = "mattpocock/writing-beats"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/writing-beats"
+target = "skills/writing-beats"
+
+[[assets]]
+id = "mattpocock/writing-fragments"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/writing-fragments"
+target = "skills/writing-fragments"
+
+[[assets]]
+id = "mattpocock/writing-shape"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/in-progress/writing-shape"
+target = "skills/writing-shape"
+
+[[assets]]
+id = "mattpocock/git-guardrails-claude-code"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/misc/git-guardrails-claude-code"
+target = "skills/git-guardrails-claude-code"
+
+[[assets]]
+id = "mattpocock/migrate-to-shoehorn"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/misc/migrate-to-shoehorn"
+target = "skills/migrate-to-shoehorn"
+
+[[assets]]
+id = "mattpocock/scaffold-exercises"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/misc/scaffold-exercises"
+target = "skills/scaffold-exercises"
+
+[[assets]]
+id = "mattpocock/setup-pre-commit"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/misc/setup-pre-commit"
+target = "skills/setup-pre-commit"
+
+[[assets]]
+id = "mattpocock/edit-article"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/personal/edit-article"
+target = "skills/edit-article"
+
+[[assets]]
+id = "mattpocock/obsidian-vault"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/personal/obsidian-vault"
+target = "skills/obsidian-vault"
+
+[[assets]]
+id = "mattpocock/grill-me"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/grill-me"
+target = "skills/grill-me"
+
+[[assets]]
+id = "mattpocock/grilling"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/grilling"
+target = "skills/grilling"
+
+[[assets]]
+id = "mattpocock/handoff"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/handoff"
+target = "skills/handoff"
+
+[[assets]]
+id = "mattpocock/teach"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/teach"
+target = "skills/teach"
+
+[[assets]]
+id = "mattpocock/writing-great-skills"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/writing-great-skills"
+target = "skills/writing-great-skills"
+
+[[assets]]
+id = "k16shikano/cognitive-rhythm-writing"
+source = "cognitive-rhythm-writing"
+kind = "skill"
+path = "SKILL.md"
+target = "skills/cognitive-rhythm-writing"
+
+[[assets]]
+id = "k16shikano/japanese-tech-writing"
+source = "japanese-tech-writing"
+kind = "skill"
+path = "SKILL.md"
+target = "skills/japanese-tech-writing"

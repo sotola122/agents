@@ -1,0 +1,67 @@
+# Machine-local enable list for catalog diff/apply (not tracked by git).
+# Copy to assets.local.toml and set true for assets you want distributed.
+#
+# [external] keys are asset.id values from sources.toml.
+#   - section omitted: all external assets are included in diff/apply
+#   - section present: only true entries are included (false/omitted = off)
+# [skills]/[agents]/[context] control local tree assets (opt-in: true to include).
+# sync always uses every external asset pinned in sources.toml.
+#
+# Harnesses follow apply.allowed_harnesses ∩ kind support.
+
+[external]
+"mattpocock/ask-matt" = true
+"mattpocock/code-review" = true
+"mattpocock/codebase-design" = true
+"mattpocock/diagnosing-bugs" = true
+"mattpocock/domain-modeling" = true
+"mattpocock/grill-with-docs" = true
+"mattpocock/implement" = true
+"mattpocock/improve-codebase-architecture" = true
+"mattpocock/prototype" = true
+"mattpocock/research" = true
+"mattpocock/resolving-merge-conflicts" = true
+"mattpocock/setup-matt-pocock-skills" = true
+"mattpocock/tdd" = true
+"mattpocock/to-spec" = true
+"mattpocock/to-tickets" = true
+"mattpocock/triage" = true
+"mattpocock/wayfinder" = true
+"mattpocock/batch-grill-me" = true
+"mattpocock/claude-handoff" = true
+"mattpocock/loop-me" = true
+"mattpocock/setup-ts-deep-modules" = true
+"mattpocock/to-questionnaire" = true
+"mattpocock/wizard" = true
+"mattpocock/writing-beats" = true
+"mattpocock/writing-fragments" = true
+"mattpocock/writing-shape" = true
+"mattpocock/git-guardrails-claude-code" = true
+"mattpocock/migrate-to-shoehorn" = true
+"mattpocock/scaffold-exercises" = true
+"mattpocock/setup-pre-commit" = true
+"mattpocock/edit-article" = true
+"mattpocock/obsidian-vault" = true
+"mattpocock/grill-me" = true
+"mattpocock/grilling" = true
+"mattpocock/handoff" = true
+"mattpocock/teach" = true
+"mattpocock/writing-great-skills" = true
+"k16shikano/cognitive-rhythm-writing" = true
+"k16shikano/japanese-tech-writing" = true
+
+[skills]
+codegraph = false
+config-catalog = false
+delegate-codex = true
+delegate-pi = true
+empirical-prompt-tuning = false
+md-docs-dev = false
+openagent-model-routing = false
+
+[agents]
+repo-steward = false
+
+[context]
+"AGENTS.md" = false
+"CLAUDE.md" = false
