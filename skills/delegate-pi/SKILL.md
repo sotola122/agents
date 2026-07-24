@@ -145,4 +145,4 @@ Completion: every Pi failure mode is named when it happens; implement and verify
 
 ## Anago
 
-When Anago's `reviewer` agent requests a Pi second opinion, follow `catalog/skills/anago/review-pi-second-opinion` and only run if Anago review config has `delegatePi.enabled: true` (or legacy `piCodex.enabled: true` when `delegatePi` is absent). Prefer Anago `piCodex.modelSpec` when present.
+When Anago's `reviewer` agent requests a Pi second opinion, only run if Anago review config has `delegatePi.enabled: true` (or legacy `piCodex.enabled: true` when `delegatePi` is absent). Prefer Anago `piCodex.modelSpec` when present.

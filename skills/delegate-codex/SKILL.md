@@ -148,4 +148,4 @@ Completion: every Codex failure mode is named when it happens; implement and ver
 
 ## Anago
 
-When Anago's `reviewer` agent requests a Codex second opinion, follow `catalog/skills/anago/review-codex-second-opinion` and only run if Anago review config has `delegateCodex.enabled: true`.
+When Anago's `reviewer` agent requests a Codex second opinion, only run if Anago review config has `delegateCodex.enabled: true`.

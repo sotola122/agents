@@ -12,9 +12,8 @@ agent、AGENTS.md、skillsを一か所で管理し、Cursor や OpenCode など�
 - `skills/`：このリポジトリで直接管理するエージェントスキル（local asset）
 - `agents/`：このリポジトリで直接管理するエージェント向けプロンプト
 - `context/`：このリポジトリで直接管理する、各ツールで共有する指示
-- `catalog/skills/anago/`：Anago 向けコレクション（レビュー lane は Skill。Pi/Codex 二次意見は `skills/delegate-pi` / `skills/delegate-codex` を Anago の `delegatePi` / `delegateCodex` 設定で gate）
-- `manifests/anago.json`：Anago コレクションのマニフェスト
 
+Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリから Anago が同期するのは harness skill（`skills/delegate-pi`、`skills/delegate-codex`）のみ。
 
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
