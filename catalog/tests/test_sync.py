@@ -856,7 +856,7 @@ class SyncCliTests(unittest.TestCase):
             lines, operations, pi, applied = core.plan_changes(
                 config, lock, ("skill",), ("cursor",)
             )
-            self.assertTrue(any("stale" in line for line in lines))
+            self.assertTrue(any(" remove] " in line for line in lines))
             core.apply_changes(
                 config, operations, pi, applied, kinds=("skill",)
             )
@@ -865,6 +865,31 @@ class SyncCliTests(unittest.TestCase):
             self.assertFalse(any(item.asset_id == "fixture/demo" for item in remaining))
 
         self._run(exercise)
+
+    def test_render_diff_output_summary_and_color(self) -> None:
+        lines = [
+            "[fixture/demo → cursor] + skills/demo/SKILL.md",
+            "[fixture/demo → cursor] ~ skills/demo/notes.txt",
+            "[fixture/old → cursor remove] - skills/old/SKILL.md",
+            "[fixture/demo → cursor]   --- skills/demo/notes.txt",
+        ]
+        plain = core.render_diff_output(lines, color=False)
+        self.assertTrue(plain.startswith("summary: +1  ~1  -1\n"))
+        self.assertIn("[fixture/old → cursor remove] - skills/old/SKILL.md", plain)
+        self.assertNotIn("\033[", plain)
+
+        colored = core.render_diff_output(lines, color=True)
+        self.assertIn(core._ANSI_GREEN, colored)
+        self.assertIn(core._ANSI_YELLOW, colored)
+        self.assertIn(core._ANSI_RED, colored)
+        self.assertIn(core._ANSI_RESET, colored)
+        # Unified-diff body lines stay uncolored.
+        self.assertIn(
+            "[fixture/demo → cursor]   --- skills/demo/notes.txt",
+            colored,
+        )
+
+        self.assertEqual(core.render_diff_output([], color=False), "no changes\n")
 
     def test_pi_markers_stripped_when_pi_removed_from_harnesses(self) -> None:
         def exercise() -> None:

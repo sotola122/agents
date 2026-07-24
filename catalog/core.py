@@ -1612,6 +1612,67 @@ def _diff_tree(actual: FileTree, expected: FileTree) -> list[str]:
     return lines
 
 
+_DIFF_OP_RE = re.compile(r"\] ([+\-~]) ")
+_ANSI_RESET = "\033[0m"
+_ANSI_BOLD = "\033[1m"
+_ANSI_GREEN = "\033[32m"
+_ANSI_YELLOW = "\033[33m"
+_ANSI_RED = "\033[31m"
+_DIFF_OP_COLOR = {"+": _ANSI_GREEN, "~": _ANSI_YELLOW, "-": _ANSI_RED}
+
+
+def _diff_line_op(line: str) -> str | None:
+    """Return '+', '~', or '-' for a plan_changes file op line; else None."""
+    match = _DIFF_OP_RE.search(line)
+    return match.group(1) if match else None
+
+
+def _diff_summary_line(lines: Sequence[str]) -> str | None:
+    counts = {"+": 0, "~": 0, "-": 0}
+    for line in lines:
+        op = _diff_line_op(line)
+        if op is not None:
+            counts[op] += 1
+    if not any(counts.values()):
+        return None
+    return f"summary: +{counts['+']}  ~{counts['~']}  -{counts['-']}"
+
+
+def _color_enabled_for_stdout() -> bool:
+    if os.environ.get("NO_COLOR", ""):
+        return False
+    if os.environ.get("TERM", "") == "dumb":
+        return False
+    return sys.stdout.isatty()
+
+
+def _colorize_diff_line(line: str) -> str:
+    if line.startswith("summary:"):
+        colored = line
+        for op, color in _DIFF_OP_COLOR.items():
+            colored = colored.replace(f" {op}", f" {color}{op}{_ANSI_RESET}", 1)
+        # First token "summary:" stays bold for scanability.
+        if colored.startswith("summary:"):
+            colored = f"{_ANSI_BOLD}summary:{_ANSI_RESET}" + colored[len("summary:") :]
+        return colored
+    op = _diff_line_op(line)
+    if op is None:
+        return line
+    return f"{_DIFF_OP_COLOR[op]}{line}{_ANSI_RESET}"
+
+
+def render_diff_output(lines: Sequence[str], *, color: bool) -> str:
+    """Format plan_changes lines for display: optional summary + optional ANSI color."""
+    if not lines:
+        return "no changes\n"
+    body = list(lines)
+    summary = _diff_summary_line(body)
+    rendered = ([summary] if summary else []) + body
+    if color:
+        rendered = [_colorize_diff_line(line) for line in rendered]
+    return "\n".join(rendered) + "\n"
+
+
 _PI_MARKER_RE = re.compile(
     r"<!-- external-skill-sync:([^:\s]+):begin -->.*?<!-- external-skill-sync:\1:end -->",
     re.DOTALL,
@@ -1721,7 +1782,7 @@ def plan_changes(
                 continue
             asset_lines = _diff_tree(actual, {})
             lines.extend(
-                f"[{item.asset_id} → {harness} stale] {line}" for line in asset_lines
+                f"[{item.asset_id} → {harness} remove] {line}" for line in asset_lines
             )
             operations.append((item.asset_id, base_root, item.root, {}))
     pi_change = None
@@ -1944,12 +2005,19 @@ def main(argv: Sequence[str] | None = None) -> int:
                 config, lock, kinds, harnesses
             )
             if args.command == "diff":
-                output = "\n".join(lines) + ("\n" if lines else "")
+                # Color only interactive stdout; --output and pipes stay plain.
+                use_color = (not args.output) and _color_enabled_for_stdout()
+                output = render_diff_output(lines, color=use_color)
+                plain = (
+                    output
+                    if not use_color
+                    else render_diff_output(lines, color=False)
+                )
                 if args.output:
                     path = _assert_safe_destination(config.root, args.output)
                     path.parent.mkdir(parents=True, exist_ok=True)
-                    path.write_text(output, encoding="utf-8", newline="\n")
-                sys.stdout.write(output or "no changes\n")
+                    path.write_text(plain, encoding="utf-8", newline="\n")
+                sys.stdout.write(output)
                 return 1 if lines else 0
             return apply_changes(
                 config, operations, pi_change, applied_update, kinds=kinds

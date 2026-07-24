@@ -136,6 +136,16 @@ delegate-codex = true
 - `status`：既定の選択内容と、各ファイルの同期状態を表示します。
 - `check-updates`：取得元の HEAD と固定中のコミット ID を比較します。
 
+`diff` の各行は次の記号です。
+
+- `+`：追加（add）
+- `~`：更新（update）
+- `-`：削除（remove）
+
+先頭の `summary: +N  ~N  -N` はファイル単位の件数です。
+以前 apply 済みで今回の対象外になった asset は `[… → harness remove]` と表示され、`-` 行が削除予定です。
+ターミナル表示時は `+` 緑 / `~` 黄 / `-` 赤で色分けします（`NO_COLOR` 設定時やパイプ／`--output` では無色）。
+
 `validate`、`diff`、`apply`、`status` はネットワークに接続しません。
 
 `sync` と `check-updates` は外部リポジトリへ接続します。
