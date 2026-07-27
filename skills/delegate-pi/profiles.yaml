@@ -1,7 +1,11 @@
 # Permission profiles for delegate-pi.
-# Always pass an explicit tools allowlist (or no_tools: true).
+# Pi built-ins: read, bash, edit, write, grep, find, ls
 # --tools is a model allowlist, not an OS sandbox.
-# Any profile that includes bash is writable via the shell.
+# writable: true only when bash is in the allowlist (shell can rewrite files).
+#
+# no_extensions: true is ALWAYS kept, including plugin/mcp backends.
+# --no-extensions disables ambient discovery; explicit -e <path> still loads
+# (same pattern as --no-skills + --skill). Never drop --no-extensions.
 
 defaults:
   print: true
@@ -16,15 +20,13 @@ profiles:
   review:
     purpose: code/design/security review; static bug hunt
     tools: [read, grep, find, ls]
+    exclude_tools: [bash, edit, write]
     writable: false
 
   verify:
     purpose: build, test, lint, static analysis, reproduce
     tools: [read, grep, find, ls, bash]
-    # bash can rewrite files; prompt "do not edit" is not a technical guarantee
     writable: true
-    # After the run: compare status + content hashes/diffs (incl. already-dirty paths);
-    # prefer a disposable worktree; note ignored-output limits
 
   implement:
     purpose: feature, fix, refactor, add tests (user must ask explicitly)
@@ -32,6 +34,9 @@ profiles:
     writable: true
 
   no-tools:
-    purpose: judge only provided text/diff; no repo exploration
+    purpose: judge only provided text/diff/images; no repo exploration
     no_tools: true
     writable: false
+
+# Multimodal backend compatibility: see modalities.yaml backends.*.compatible_profiles
+# Effective allowlist: profile.tools ∪ backend.tool_names − profile.exclude_tools

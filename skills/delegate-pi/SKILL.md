@@ -2,9 +2,8 @@
 name: delegate-pi
 description: >-
   Delegate a bounded coding task to the Pi coding agent via CLI (`pi --print`).
-  Use when the user wants a second-opinion review, verification (build/test/lint),
-  or implementation handed off to Pi, mentions running/delegating work to pi,
-  or asks to smoke-test / confirm Pi connectivity.
+  Use for second-opinion review, verification, implementation, smoke-test of Pi
+  connectivity, or multimodal work (vision, document/PDF, browser UI check).
 ---
 
 # Delegate Pi
@@ -12,7 +11,7 @@ description: >-
 Hand one bounded task to Pi as a child agent. Prefer `--print` (process and exit).
 Do not start interactive `pi` for delegation.
 
-Prompt bodies live under [`prompts/`](prompts/). Review output shape is in [`prompts/review.md`](prompts/review.md).
+Prompt bodies: [`prompts/`](prompts/). CLI assembly: [`references/cli.md`](references/cli.md). Multimodal: [`references/multimodal.md`](references/multimodal.md). OS prerequisites: [`references/prerequisites.md`](references/prerequisites.md).
 
 ## Steps
 
@@ -20,129 +19,204 @@ Prompt bodies live under [`prompts/`](prompts/). Review output shape is in [`pro
 
 When the user asks to smoke-test or confirm Pi auth / model / connectivity — and only then — run this step before (or instead of) a real task. Otherwise skip to step 1.
 
-1. Read [provider.yaml](provider.yaml) → use `smoke.model` and `smoke.thinking` (not the default task model).
-2. Run with `--no-tools` and the body of [`prompts/smoke.md`](prompts/smoke.md).
+Read [provider.yaml](provider.yaml) `smoke:` and pick **one** mode:
 
-```bash
-pi \
-  --print \
-  --provider <provider.yaml provider> \
-  --model <provider.yaml smoke.model> \
-  --thinking <provider.yaml smoke.thinking> \
-  --no-session \
-  --no-extensions \
-  --no-skills \
-  --no-prompt-templates \
-  --no-context-files \
-  --no-approve \
-  --no-tools \
-  "Reply with exactly: OK"
-```
+| Mode | When | Tuple |
+| --- | --- | --- |
+| `provider_auth` | User asks only for connectivity / auth | `smoke.provider_auth.model` + `smoke.provider_auth.thinking` |
+| `planned_tuple` | Smoke gates a real task | Resolved `--provider` / `--model` from step 4, `thinking: smoke.planned_tuple.thinking` |
 
-Completion: skipped (user did not ask), or stdout is exactly `OK` (trim whitespace) and exit code is 0. On any other smoke outcome (non-zero, empty, wrong text, auth/model error), **stop** and report the failure — do not run the real task.
+Assemble flags per [references/cli.md](references/cli.md) with `--no-tools` and inline prompt from [`prompts/smoke.md`](prompts/smoke.md). Report the exact tuple tested. Do not block a planned task on failure of an unrelated model.
+
+Completion: skipped, or stdout is exactly `OK` (trim whitespace) and exit code is 0. On any other outcome for the chosen mode, **stop** — do not run the real task.
 
 ### 1. Choose a permission profile
 
-Read [profiles.yaml](profiles.yaml). Pick **exactly one** profile that matches the task:
+Read [profiles.yaml](profiles.yaml). Pick **exactly one** profile:
 
 | Task | Profile |
 | --- | --- |
 | Review, design check, static bug hunt | `review` |
 | Build, test, lint, reproduce (no source edits intended) | `verify` |
 | Implement, fix, refactor (user explicitly asked) | `implement` |
-| Judge only text/diff already provided (no repo tools) | `no-tools` |
+| Judge only supplied text/diff/images | `no-tools` |
 
-Map the profile to CLI flags:
+Map to CLI flags:
 
-- `tools: [...]` → `--tools` joined with commas
+- `tools: [...]` → `--tools` comma-separated
+- `exclude_tools: [...]` → `--exclude-tools` comma-separated
 - `no_tools: true` → `--no-tools`
-- Apply every `defaults:` flag as the matching `--flag`
+- Apply every `defaults:` flag — including **`no_extensions: true` always** (never drop it for plugin/mcp)
 
-Completion: the profile name and its tool flags are fixed. Do not invent tool lists.
+`writable: true` means `bash` is allowed — treat the run as shell-writable.
 
-### 2. Load provider settings
+For `review`, also fix `review_kind`: `change-review` | `static-hunt`.
 
-Read [provider.yaml](provider.yaml). Take `provider`, `model`, and `thinking` (use `thinking_by_task` when the task shape matches a key). Override only if the user names different values. Do **not** use the `smoke` block for the real task.
+Completion: profile name, tool flags, and (if review) `review_kind` fixed. Do not invent tool lists.
 
-Completion: `--provider`, `--model`, and `--thinking` are set.
+### 2. Choose modalities (multimodal only)
 
-### 3. Assemble the prompt
+When the task involves images, PDFs, or browser/UI checks — otherwise skip with an empty modality set.
 
-Build one prompt file by concatenating, in order:
+1. Read [modalities.yaml](modalities.yaml) (parent-only; do not pass YAML paths to the child).
+2. Pick zero or more: `vision`, `document`, `browser`.
+3. For each, fix `backend` (`none`, `bash`, `plugin`, `mcp`).
+4. Split inputs:
+   - `cli_attachments` — `@` images and deliberate text (diffs, rule files)
+   - `task_input_paths` — filesystem paths the child reads (PDFs go here; never `@` a PDF as vision)
+5. Create `artifact_dir`: unique empty dir `<temp>/delegate-pi/<timestamp>-<rand>/`. Record under `orchestration_artifacts`.
+6. **Validate selected backend**:
+   - `compatible_profiles` must include the profile from step 1.
+   - Effective allowlist = `profile.tools ∪ backend.tool_names − profile.exclude_tools`. Collision → **stop**. Nonempty `requires_tools` with `no-tools` profile → **stop**.
+   - Every `requires_tools` entry must appear in the effective allowlist.
+   - `plugin`: absolute `extension_path` exists and is readable; `tool_names` nonempty — else **stop**.
+   - `mcp`: absolute `adapter_extension_path` and `mcp_config` exist and are readable; `tool_names` nonempty; parse `mcp_config` JSON; each server `argv[0]` must resolve to a **local executable** (`npx` / `npm exec` / bare package names → **stop**). Local argv prevents package-runner auto-fetch only — it is **not** network isolation.
+7. **Document fields** (from modalities.yaml backend): serialize `page_counter` / `text_extractor` / `renderer` (bash) or plugin tools, `max_document_pages`, `max_render_pages`, `page_range`, `render_policy` (`never` | `on_empty_or_layout`), `artifact_dir`. Page count: bash → `pdfinfo`; plugin → plugin tool (no Poppler required for plugin). `page_range` from user-approved `in_scope` only — **never auto-shrink**; if limits cannot fit, **stop** or mark incomplete.
+8. **Browser preflight** (typed): resolve `target_url`, `server` (`none` or `{owner, argv, cwd}`), `readiness` `{kind, value}`, `timeout_ms`, `teardown_owner`, `browser_channel`, `artifact_dir`, `visual_check`. Unresolved → **stop** or ask. `server.owner: child` requires `bash` in allowlist; `review` + MCP → `owner` must be `parent` or `external`. Parent starts argv and holds the handle when `owner: parent`. Teardown is **unconditional** at end of run.
+9. Set `image_input_planned: true` when vision is selected, or `render_policy != never`, or `visual_check: true`. If true, force `--mode json`.
+10. **Prerequisite probe** (bash backends): read [`references/prerequisites.md`](references/prerequisites.md). Probe in the Pi bash environment. On miss → **stop**, show OS install section — do not auto-install. Browser probe must use `browser_channel` and exit nonzero on failure (see prerequisites).
+11. **Startup probe** (only when plugin/mcp paths are configured): `pi --print --no-extensions -e <abs> [--mcp-config <abs>] --tools <tool_names> ... "list your available tools"`. Confirm `-e` + `--mcp-config` parse together and expected tools register. Unconfigured → skip. Never install.
+12. `upgrade_policy: never` — do not silently promote profile.
 
-1. **Base** — `prompts/<profile>.md` when it exists (`review`, `verify`, `implement`). For `no-tools`, skip base or use a one-line instruction only.
-2. **Appends** — zero or more files from `prompts/append/`, each appended **after** the base (never spliced into the middle). Include `prompts/append/adversarial.md` when the user asks for adversarial / hostile / red-team / attack-style review.
-3. **Task block** — short concrete scope last: paths, base ref, constraints, and “do not modify files” when the profile is read-only.
+Canonical append order: `vision` → `document` → `browser`. Dedupe vision when browser/document implies it.
 
-Write the assembled text to a temp file. Prefer that file (or stdin) over a giant shell argument.
+Completion: modality set fixed; paths absolute and existence-checked; MCP argv local; browser preflight resolved; `image_input_planned` decided; prerequisites present or user notified. Do **not** claim backends are fully executable beyond path/argv checks (unless startup probe ran).
 
-Completion: one temp prompt file exists and contains base → appends → task in that order.
+### 3. Choose child skills (opt-in)
 
-### 4. Run Pi
+Default: no explicit child skills.
 
-From the repo root (or an agreed worktree for `implement`):
+When the user names a skill the child must follow:
 
-```bash
-pi \
-  --print \
-  --provider <provider.yaml> \
-  --model <provider.yaml> \
-  --thinking <provider.yaml> \
-  --no-session \
-  --no-extensions \
-  --no-skills \
-  --no-prompt-templates \
-  --no-context-files \
-  --no-approve \
-  <profile tools flag> \
-  [@files...] \
-  <prompt via stdin or @prompt-file>
+1. Resolve each path to absolute; verify file or directory exists.
+2. Record in run plan; pass one `--skill <abs>` per skill.
+3. **Keep `--no-skills`** — explicit `--skill` loads alongside discovery block.
+4. Skill load does not widen `--tools`; profile allowlist stays authoritative.
+
+Completion: child skill set fixed (zero or more), every path existence-verified.
+
+### 4. Choose effort and load provider settings
+
+Read [provider.yaml](provider.yaml). Pick **one effort** key using each entry's `when:`. Apply `resolution:` field lists exactly — do not invent another precedence. Record effort key, **reason**, `image_input_planned`, and resolved `--provider` / `--model` / `--thinking`.
+
+If `image_input_planned` and the resolved (or user) model is outside `vision_capable_models` → confirm or refuse.
+
+Retry triggers live in step 7, not here.
+
+Completion: effort key, reason, and resolved tuple recorded in run plan.
+
+### 5. Assemble the prompt
+
+Require `prompts/<profile>.md` for every profile. Missing → **stop**.
+
+Before launch for `change-review`: build a **complete change manifest** into `artifact_dir` and attach via `cli_attachments`:
+
+- `baseline` (sha or `HEAD` + dirty)
+- tracked: `git diff --binary <baseline>`, `git diff --name-status <baseline>`
+- untracked: `git ls-files --others --exclude-standard`; materialize each as `git diff --no-index --binary /dev/null <path>` (or attach the file)
+- If any range is omitted → record `omitted_ranges` in the task block; child must not give an unqualified whole-change pass (`narrowly scoped` or incomplete)
+
+Concatenate in order (dependency closure; each item at most once):
+
+1. **Base** — `prompts/<profile>.md`
+2. **Shared multimodal** — if any modality selected, inline `references/multimodal.md` once
+3. **Modality references** — selected modalities in canonical order
+4. **Modality appends** — canonical order
+5. **Lens appends** — `tooling-suggest.md` / `adversarial.md` when requested
+6. **Task block** — serialize:
+
+```
+objective:
+in_scope:
+out_of_scope:
+acceptance_checks:   # numbered; each independently verifiable
+allowed_task_side_effects: none | [explicit list]
+orchestration_artifacts: [artifact_dir, diffs, worktrees, ...]
+stop_conditions:
+cli_attachments: [...]
+task_input_paths: [...]
+review_kind: change-review | static-hunt   # review only
+workspace: in_place | worktree            # verify / implement retry
+image_formats: [...]                      # when vision/images
+# + document / browser backend fields from step 2
 ```
 
-**CLI rules (avoid the failure modes that broke the first run):**
+Write via UTF-8 recipe in [references/cli.md](references/cli.md).
 
-- **PowerShell:** never pass a bare `@path` (splat). Quote every attachment: `'@README.md'`. For the assembled prompt, use stdin (`Get-Content $promptFile -Raw | pi ...`) or a quoted path built as `('@{0}' -f $promptFile)`.
-- **bash:** `pi ... @"$promptFile"` or stdin pipe is fine.
-- Attach repo context with quoted `@` args when useful; for large diffs use stdin or a temp file.
-- For `review` of working-tree changes, pipe a merge-base diff when useful:
+**Post-assembly check:** scan the assembled prompt for **package-relative pointers** only — patterns like bare `references/…`, `prompts/…`, `prerequisites.md`, or unpath-qualified `modalities.yaml` / `provider.yaml` / `profiles.yaml` as instructions to open those skill files. Absolute task paths and deliberate `@` attachments (including `*.yaml` rule files under review) are allowed. Any unresolved package-relative pointer → **stop** and remove it.
 
-```bash
-BASE_REF="${BASE_REF:-origin/main}"
-MERGE_BASE="$(git merge-base "$BASE_REF" HEAD)"
-git diff --no-ext-diff --find-renames --unified=80 "$MERGE_BASE" -- |
-  pi ... <same flags> <prompt>
+Completion: base → multimodal (if any) → refs → appends → lens → task; zero package-relative pointers; all selected values serialized in the task block.
+
+### 6. Run Pi
+
+From repo root (or materialized worktree). Assemble per [references/cli.md](references/cli.md):
+
+```
+pi --print [--mode json] \
+  --provider <resolved> --model <resolved> --thinking <resolved> \
+  --no-session --no-extensions --no-skills [--skill <abs> ...] \
+  --no-prompt-templates --no-context-files --no-approve \
+  <profile tools flag> [--exclude-tools ...] \
+  [-e <extension_path>] [-e <adapter_extension_path> --mcp-config <path>] \
+  ['@cli_attachments' ...] \
+  <prompt via stdin>
 ```
 
-For **`verify`**: prefer a disposable git worktree when the tree is already dirty or when bash may rewrite files. Before this step, capture both:
+Keep `--no-extensions` always. Put `-e` **before** `--mcp-config`. Extend `--tools` with backend `tool_names` when plugin/mcp. Use `--mode text` only when no visual audit and `image_input_planned` is false. Optional lever (not default): `--offline` for startup network ops only — see cli.md.
 
-1. `git status --short` (path list / status codes)
-2. A **content-level** snapshot of tracked + untracked paths of interest — e.g. `git diff --no-ext-diff` plus hashes (`git hash-object` / checksums) for already-dirty and untracked files you care about
+**Workspace materialization** (`verify` when dirty, and `implement` retry attempt 2):
 
-Completion: Pi exited; stdout captured; non-zero exit, empty stdout, auth/model/timeout failures reported to the user without substituting a silent local review.
+1. **Before attempt 1**, capture an immutable input baseline into `artifact_dir`:
+   - `base=$(git rev-parse HEAD)`
+   - `git diff --binary HEAD > dirty.patch`
+   - untracked via `git ls-files --others --exclude-standard -z`
+   - **Archive untracked contents** into `artifact_dir/untracked/` with type/mode/symlink preserved (`cp -a` / equivalent) — do not rely on the live worktree later
+2. `git worktree add --detach <dir> $base`
+3. If dirty.patch nonempty: `git -C <dir> apply --index --binary`
+4. Restore untracked **from the archive** (not from the live tree) with type/mode/symlink preserved
+5. Manifest: base sha, dirty.patch hash, each untracked path + hash + type + mode + symlink target; recompute in worktree and compare
+6. Submodule/ignored needed, apply failure, or manifest mismatch → destroy worktree, fall back to **in_place**. Never report green from bare `HEAD` while dirty changes exist.
+7. Record `workspace` choice and reason in the run plan
+8. After the run: copy retained evidence into `artifact_dir`. Then:
+   - **`verify`:** `git worktree remove` + `git worktree prune` unconditionally
+   - **`implement` retry success:** produce `git -C <dir> diff --binary $base > artifact_dir/result.patch` (include untracked additions), apply/validate into the **destination workspace**, confirm expected paths exist, **then** remove the worktree. If apply to destination fails → `Delegation incomplete` (keep the worktree path in the report; do not claim success).
+   - **`implement` retry failure:** remove the worktree; keep attempt output
 
-### 5. Verify the handoff
+Completion: Pi exited; stdout captured; JSON event log retained when `--mode json`; failures reported without silent local substitution; successful implement-retry edits delivered to the destination workspace.
 
-- Surface Pi's stdout to the user unchanged (summarize only if asked).
-- After **`implement`**: run `git status --short`, `git diff --stat`, and relevant tests yourself.
-- After **`verify`**:
-  - Recapture `git status --short` and content-level diffs/hashes.
-  - Report paths that became **newly dirty**, and paths that were **already dirty** whose content changed (status-only comparison misses those).
-  - Note the limitation: ignored outputs (`.gitignore`, clean filters, smudge) are not fully covered by status/diff alone — call that out when relevant.
-  - Prefer a disposable worktree for verify when practical so side effects never touch the user's working tree.
-  - Report Pi's command outcomes; do not claim green without evidence.
+### 7. Verify the handoff
 
-Completion: every Pi failure mode is named when it happens; implement and verify side effects are checked in this agent before declaring done.
+**JSON success signal** (when `--mode json`): process exit 0, and the event stream contains `"type":"agent_end"` with `"willRetry":false`, then `"type":"agent_settled"`. Extract final assistant text from the last assistant `message_end` / `turn_end`. Absent this signal → treat as incomplete even if exit 0.
+
+Task completion — all required:
+
+1. Process exit 0 and (if json) the success signal above
+2. Profile output heading present (`# Review Result` / `# Verify Result` / `# Implement Result` / `# Judgment Result`)
+3. Every `acceptance_checks` item has explicit evidence
+4. Task side effects ⊆ `allowed_task_side_effects` (ignore `orchestration_artifacts`)
+
+Any miss → report **`Delegation incomplete`** with unmet item names; do not declare success.
+
+Also:
+
+- **Multimodal:** Vision evidence rules from the materialized multimodal reference (run inputs vs generated outputs). Generated evidence only under this run's `artifact_dir`; require successful image-delivery in the JSON log (not merely a tool call) and recorded capture exit code.
+- **Missing modules:** present [`references/prerequisites.md`](references/prerequisites.md) install block to the user; never auto-install.
+- **`implement`:** `git status --short`, `git diff --stat`, relevant tests.
+- **`verify`:** recapture status and content-level diffs/hashes; report newly dirty and changed-already-dirty paths.
+- **Retry** (provider.yaml `retry.max_attempts: 2`): on implement failure matching `implement_alternate.when`, keep attempt-1 output, materialize a **fresh** copy from the pre-attempt-1 baseline, re-resolve model via `resolution`, run attempt 2. Do not retry from an already-modified tree.
+
+Completion: success only when all acceptance checks pass; otherwise incomplete with named gaps.
 
 ## Hard rules
 
-- Always pass an explicit tool allowlist (`--tools` or `--no-tools`). Never rely on Pi's default tool set.
-- `--tools` is a model allowlist, not an OS sandbox. Presence of `bash` means treat the run as writable.
-- Do not co-edit the same working tree: either Cursor investigates while Pi reviews read-only, or Cursor waits while Pi implements (prefer a dedicated git worktree for parallel work).
-- Do not ask Pi to `git commit`, `git push`, or open a PR.
-- Do not put secrets, API keys, or `.env` contents into the prompt.
-- Prefer the `defaults:` isolation flags in `profiles.yaml` for second-opinion runs. Pass reviewed rule files with `@path` instead of loading ambient `AGENTS.md` / `CLAUDE.md`.
-- When extending review styles, add a new file under `prompts/append/` and append it after the base template — do not fork `prompts/review.md` for each lens.
-
-## Anago
-
-When Anago's `reviewer` agent requests a Pi second opinion, only run if Anago review config has `delegatePi.enabled: true` (or legacy `piCodex.enabled: true` when `delegatePi` is absent). Prefer Anago `piCodex.modelSpec` when present.
+- Explicit tool allowlist always (`--tools` or `--no-tools`).
+- Modalities validate profile — never silently upgrade.
+- `--no-skills` always; add `--skill` only when step 3 opts in.
+- `--no-extensions` always; add `-e` only for configured plugin/mcp paths.
+- No auto-install during delegation (`install_policy: never` unless user authorized outside this skill).
+- Do not co-edit the same working tree with Pi.
+- No `git commit`, `git push`, or PR from Pi.
+- No secrets in prompts.
+- Prefer isolation defaults; pass rule files with `@path` instead of ambient AGENTS.md.
+- Extend via `prompts/append/` — do not fork base prompts per lens.
+- Never auto-shrink document `page_range` to fit limits.
