@@ -55,7 +55,11 @@ codegraph = false
 config-catalog = false
 delegate-codex = true
 delegate-pi = true
+document-writing = true
 empirical-prompt-tuning = false
+git-worktree = true
+github-issue = true
+github-pr = true
 md-docs-dev = false
 openagent-model-routing = false
 
