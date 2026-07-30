@@ -43,8 +43,8 @@ Read [profiles.yaml](profiles.yaml). Pick **exactly one** profile:
 
 Map to CLI flags:
 
-- `tools: [...]` → `--tools` comma-separated
-- `exclude_tools: [...]` → `--exclude-tools` comma-separated
+- `tools: [...]` → `--tools` as **one quoted comma-separated string** on PowerShell (e.g. `--tools 'read,grep,find,ls'`); see [references/cli.md](references/cli.md)
+- `exclude_tools: [...]` → `--exclude-tools` as **one quoted comma-separated string** on PowerShell; see [references/cli.md](references/cli.md)
 - `no_tools: true` → `--no-tools`
 - Apply every `defaults:` flag — including **`no_extensions: true` always** (never drop it for plugin/mcp)
 
@@ -149,7 +149,9 @@ Completion: base → multimodal (if any) → refs → appends → lens → task;
 
 ### 6. Run Pi
 
-From repo root (or materialized worktree). Assemble per [references/cli.md](references/cli.md):
+From repo root (or materialized worktree). Assemble per [references/cli.md](references/cli.md).
+
+**Before launch on PowerShell, every comma-joined flag value is a single quoted argument.**
 
 ```
 pi --print [--mode json] \

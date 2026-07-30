@@ -22,6 +22,17 @@ pi ... '@C:\path with spaces\file.png'
 # Child skills
 pi ... --skill 'C:\path\to\skill-dir'
 
+# Comma-separated flags — MUST be one quoted string each.
+# Unquoted `a,b,c` is a PowerShell array; argv becomes separate words and
+# only the first name reaches --tools / --exclude-tools.
+# WRONG:
+pi --tools read,grep,find,ls --exclude-tools bash,edit,write
+# RIGHT:
+pi --tools 'read,grep,find,ls' --exclude-tools 'bash,edit,write'
+
+# Symptom of the WRONG form: child reports no tools, or only the first tool
+# name, or hits a stop condition immediately. Fix is re-quote — not "tools broken".
+
 # Assembled prompt — explicit UTF-8 (no BOM); do not use Get-Content -Raw alone
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 [System.IO.File]::WriteAllText($promptFile, $prompt, $utf8)
@@ -34,9 +45,12 @@ $env:TEMP
 
 **bash / zsh**
 
+Comma-joined `--tools` / `--exclude-tools` values do not need quoting for the commas (quote only for spaces/glob).
+
 ```bash
 pi ... "@$abs_path"
 pi ... --skill "$skill_path"
+pi ... --tools read,grep,find,ls --exclude-tools bash,edit,write
 cat "$prompt_file" | pi ... <flags>
 # Temp: ${TMPDIR:-/tmp}
 ```
@@ -70,7 +84,9 @@ Loading a skill does not widen the tool allowlist.
 
 ## Argument assembly (smoke and task)
 
-Build from resolved run plan — same procedure for smoke and real tasks:
+Build from resolved run plan — same procedure for smoke and real tasks.
+
+PowerShell: quote every comma-joined value (`--tools`, `--exclude-tools`) — see Parent shell quoting.
 
 ```
 pi \
