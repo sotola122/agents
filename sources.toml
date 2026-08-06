@@ -8,7 +8,7 @@ allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared"]
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"
-rev = "ed37663cc5fbef691ddfecd080dff42f7e7e350d"
+rev = "8b36d4fb2635b3c21998dcd8144439c9e5ba7302"
 license = "MIT"
 
 [[sources]]
@@ -20,7 +20,7 @@ license = "Unlicense"
 [[sources]]
 id = "japanese-tech-writing"
 url = "https://gist.github.com/fd287c3133457c4fd8f5601d34aa817d.git"
-rev = "209db7d6d19bc4727139844c0e8d786542e9ff68"
+rev = "c7189cdc9c2520be50418209834145bdf3a46e97"
 license = "Unlicense"
 
 [[assets]]
@@ -143,11 +143,11 @@ path = "skills/engineering/wayfinder"
 target = "skills/wayfinder"
 
 [[assets]]
-id = "mattpocock/batch-grill-me"
+id = "mattpocock/wizard"
 source = "mattpocock-skills"
 kind = "skill"
-path = "skills/in-progress/batch-grill-me"
-target = "skills/batch-grill-me"
+path = "skills/engineering/wizard"
+target = "skills/wizard"
 
 [[assets]]
 id = "mattpocock/claude-handoff"
@@ -169,20 +169,6 @@ source = "mattpocock-skills"
 kind = "skill"
 path = "skills/in-progress/setup-ts-deep-modules"
 target = "skills/setup-ts-deep-modules"
-
-[[assets]]
-id = "mattpocock/to-questionnaire"
-source = "mattpocock-skills"
-kind = "skill"
-path = "skills/in-progress/to-questionnaire"
-target = "skills/to-questionnaire"
-
-[[assets]]
-id = "mattpocock/wizard"
-source = "mattpocock-skills"
-kind = "skill"
-path = "skills/in-progress/wizard"
-target = "skills/wizard"
 
 [[assets]]
 id = "mattpocock/writing-beats"
@@ -234,20 +220,6 @@ path = "skills/misc/setup-pre-commit"
 target = "skills/setup-pre-commit"
 
 [[assets]]
-id = "mattpocock/edit-article"
-source = "mattpocock-skills"
-kind = "skill"
-path = "skills/personal/edit-article"
-target = "skills/edit-article"
-
-[[assets]]
-id = "mattpocock/obsidian-vault"
-source = "mattpocock-skills"
-kind = "skill"
-path = "skills/personal/obsidian-vault"
-target = "skills/obsidian-vault"
-
-[[assets]]
 id = "mattpocock/grill-me"
 source = "mattpocock-skills"
 kind = "skill"
@@ -276,11 +248,25 @@ path = "skills/productivity/teach"
 target = "skills/teach"
 
 [[assets]]
-id = "mattpocock/writing-great-skills"
+id = "mattpocock/to-questionnaire"
 source = "mattpocock-skills"
 kind = "skill"
-path = "skills/productivity/writing-great-skills"
-target = "skills/writing-great-skills"
+path = "skills/productivity/to-questionnaire"
+target = "skills/to-questionnaire"
+
+[[assets]]
+id = "mattpocock/wait-what"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/wait-what"
+target = "skills/wait-what"
+
+[[assets]]
+id = "mattpocock/writing-for-agents"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/productivity/writing-for-agents"
+target = "skills/writing-for-agents"
 
 [[assets]]
 id = "k16shikano/cognitive-rhythm-writing"

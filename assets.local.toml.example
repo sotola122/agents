@@ -27,12 +27,9 @@
 "mattpocock/to-tickets" = true
 "mattpocock/triage" = true
 "mattpocock/wayfinder" = true
-"mattpocock/batch-grill-me" = true
 "mattpocock/claude-handoff" = false
 "mattpocock/loop-me" = true
 "mattpocock/setup-ts-deep-modules" = false
-"mattpocock/to-questionnaire" = true
-"mattpocock/wizard" = false
 "mattpocock/writing-beats" = true
 "mattpocock/writing-fragments" = true
 "mattpocock/writing-shape" = true
@@ -40,13 +37,14 @@
 "mattpocock/migrate-to-shoehorn" = false
 "mattpocock/scaffold-exercises" = false
 "mattpocock/setup-pre-commit" = true
-"mattpocock/edit-article" = true
-"mattpocock/obsidian-vault" = true
 "mattpocock/grill-me" = true
 "mattpocock/grilling" = true
 "mattpocock/handoff" = true
 "mattpocock/teach" = true
-"mattpocock/writing-great-skills" = true
+"mattpocock/to-questionnaire" = true
+"mattpocock/wait-what" = true
+"mattpocock/wizard" = false
+"mattpocock/writing-for-agents" = true
 "k16shikano/cognitive-rhythm-writing" = true
 "k16shikano/japanese-tech-writing" = true
 
