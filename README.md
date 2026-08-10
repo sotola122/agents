@@ -130,11 +130,12 @@ delegate-codex = true
 ## コマンド一覧
 
 - `validate`：設定ファイルとロックファイルの整合性を検証します。
-- `sync`：外部リポジトリからファイルを取得し、キャッシュとロックファイルを更新します。
+- `sync`：外部リポジトリから、`sources.toml` に固定したコミット（pin）のファイルを取得し、キャッシュとロックファイルを更新します。
+- `update`：取得元の HEAD へ pin を進め、その source のキャッシュとロックファイルまで同期します。
 - `diff`：管理元（local はリポジトリ内、外部は `.cache`）と配布先を比較し、変更内容を表示します。
 - `apply`：選択したファイルを配布先へコピーします。
 - `status`：既定の選択内容と、各ファイルの同期状態を表示します。
-- `check-updates`：取得元の HEAD と固定中のコミット ID を比較します。
+- `check-updates`：取得元の HEAD と固定中のコミット ID を比較します（書き込みなし）。
 
 `diff` の各行は次の記号です。
 
@@ -148,12 +149,13 @@ delegate-codex = true
 
 `validate`、`diff`、`apply`、`status` はネットワークに接続しません。
 
-`sync` と `check-updates` は外部リポジトリへ接続します。
+`sync`、`update`、`check-updates` は外部リポジトリへ接続します。
 
 `diff` は差分がある場合に終了コード `1`、差分がない場合に `0` を返します。
 終了コード `1` は失敗ではなく、配布先に変更が必要であることを表します。
 
 `check-updates` は更新候補がある場合に終了コード `1`、候補がない場合に `0` を返します。
+`update` は更新の有無にかかわらず成功時は終了コード `0` を返します。
 
 設定や引数に誤りがある場合、各コマンドは終了コード `2` を返します。
 
@@ -162,7 +164,8 @@ delegate-codex = true
 外部リポジトリからファイルを取り込むには、`sources.toml` に取得元と管理対象を追加します。
 
 `[[sources]]` には取得元の Git リポジトリを記述します。
-`rev` にはブランチ名やタグ名ではなく、40桁または64桁の完全なコミット ID を指定します。
+`rev` にはブランチ名やタグ名ではなく、40桁または64桁の完全なコミット ID（pin）を指定します。
+`sources.lock.toml` の `export_hash` はキャッシュ内容の整合性用ハッシュで、pin とは別物です。手編集せず、`sync` / `update` が生成します。
 
 `[[assets]]` には取得するパス、論理上の配置名（`target`）、配布できるツールを記述します。
 
@@ -189,6 +192,24 @@ harnesses = ["cursor", "opencode", "shared"]
 ```console
 python -m catalog sync --asset example/tdd
 ```
+
+## 外部リポジトリの更新を取り込む
+
+取得元に新しいコミットがあるかは `check-updates` で確認できます。
+
+```console
+python -m catalog check-updates
+```
+
+pin を remote HEAD へ進め、キャッシュとロックまで一度に更新するには `update` を使います。
+特定の取得元だけ更新する場合は `--source` を指定します。
+
+```console
+python -m catalog update
+python -m catalog update --source example-skills
+```
+
+`update` のあと、配布先へ反映するには従来どおり `diff` / `apply` を実行します。
 
 ## このリポジトリで直接管理するファイル
 

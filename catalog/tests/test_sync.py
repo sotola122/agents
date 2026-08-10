@@ -1621,6 +1621,234 @@ class SyncCliTests(unittest.TestCase):
 
         self._run(exercise)
 
+    def _commit_upstream(self, message: str, content: str) -> str:
+        (self.upstream / "skills" / "demo" / "SKILL.md").write_text(
+            content, encoding="utf-8"
+        )
+        git(self.upstream, "add", ".")
+        git(
+            self.upstream,
+            "-c",
+            "user.name=Test",
+            "-c",
+            "user.email=test@example.invalid",
+            "commit",
+            "--quiet",
+            "-m",
+            message,
+        )
+        return git(self.upstream, "rev-parse", "HEAD")
+
+    def test_update_advances_pin_and_syncs_cache(self) -> None:
+        def exercise() -> None:
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            new_rev = self._commit_upstream(
+                "bump",
+                "---\nname: demo\ndescription: Use when testing.\n---\n# Demo v2\n",
+            )
+
+            code = core.update_sources(config, None)
+            self.assertEqual(code, 0)
+
+            updated = core.load_config(self.root)
+            self.assertEqual(updated.sources["fixture"].rev, new_rev)
+            lock = core.load_lock(updated, required=True)
+            self.assertEqual(lock["fixture/demo"].rev, new_rev)
+            cache = (
+                self.root / ".cache" / "sources" / "fixture" / new_rev / "demo" / "SKILL.md"
+            )
+            self.assertTrue(cache.is_file())
+            self.assertIn("# Demo v2", cache.read_text(encoding="utf-8"))
+            core.validate(updated, lock)
+
+        self._run(exercise)
+
+    def test_update_noop_when_up_to_date(self) -> None:
+        def exercise() -> None:
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            manifest_before = (self.root / "sources.toml").read_text(encoding="utf-8")
+            lock_before = (self.root / "sources.lock.toml").read_text(encoding="utf-8")
+
+            code = core.update_sources(config, None)
+            self.assertEqual(code, 0)
+            self.assertEqual(
+                (self.root / "sources.toml").read_text(encoding="utf-8"),
+                manifest_before,
+            )
+            self.assertEqual(
+                (self.root / "sources.lock.toml").read_text(encoding="utf-8"),
+                lock_before,
+            )
+
+        self._run(exercise)
+
+    def test_update_source_option_and_unknown(self) -> None:
+        def exercise() -> None:
+            second = Path(self.temporary.name) / "upstream2"
+            second.mkdir()
+            git(second, "init", "--quiet")
+            (second / "skills" / "other").mkdir(parents=True)
+            (second / "skills" / "other" / "SKILL.md").write_text(
+                "---\nname: other\ndescription: Other.\n---\n# Other\n",
+                encoding="utf-8",
+            )
+            git(second, "add", ".")
+            git(
+                second,
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "--quiet",
+                "-m",
+                "other",
+            )
+            other_rev = git(second, "rev-parse", "HEAD")
+            manifest = self.root / "sources.toml"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8")
+                + textwrap.dedent(
+                    f"""
+                    [[sources]]
+                    id = "other"
+                    url = {str(second).replace(os.sep, '/').__repr__()}
+                    rev = "{other_rev}"
+                    license = "MIT"
+
+                    [[assets]]
+                    id = "other/skill"
+                    source = "other"
+                    kind = "skill"
+                    path = "skills/other"
+                    target = "skills/other"
+                    """
+                ),
+                encoding="utf-8",
+            )
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+
+            fixture_new = self._commit_upstream(
+                "fixture-only",
+                "---\nname: demo\ndescription: Use when testing.\n---\n# Demo selected\n",
+            )
+            (second / "skills" / "other" / "SKILL.md").write_text(
+                "---\nname: other\ndescription: Other.\n---\n# Other v2\n",
+                encoding="utf-8",
+            )
+            git(second, "add", ".")
+            git(
+                second,
+                "-c",
+                "user.name=Test",
+                "-c",
+                "user.email=test@example.invalid",
+                "commit",
+                "--quiet",
+                "-m",
+                "other-bump",
+            )
+            other_new = git(second, "rev-parse", "HEAD")
+
+            code = core.main(
+                ["--root", str(self.root), "update", "--source", "fixture"]
+            )
+            self.assertEqual(code, 0)
+            updated = core.load_config(self.root)
+            self.assertEqual(updated.sources["fixture"].rev, fixture_new)
+            self.assertEqual(updated.sources["other"].rev, other_rev)
+            self.assertNotEqual(other_rev, other_new)
+
+            with self.assertRaisesRegex(core.SyncError, "未知の source"):
+                core.update_sources(updated, frozenset(("missing",)))
+
+        self._run(exercise)
+
+    def test_rewrite_source_revs_preserves_unrelated_text(self) -> None:
+        text = textwrap.dedent(
+            f"""
+            # keep me
+            schema_version = 1
+
+            [apply]
+            default_kinds = ["skill"]
+
+            [[sources]]
+            id = "fixture"
+            url = "https://example.invalid/fixture.git"
+            rev = "{self.rev}"  # pinned
+            license = "MIT"
+
+            [[assets]]
+            id = "fixture/demo"
+            source = "fixture"
+            kind = "skill"
+            path = "skills/demo"
+            """
+        ).lstrip()
+        new_rev = "0123456789abcdef0123456789abcdef01234567"
+        rewritten = core._rewrite_source_revs(
+            text, {"fixture": self.rev}, {"fixture": new_rev}
+        )
+        self.assertIn("# keep me", rewritten)
+        self.assertIn('rev = "0123456789abcdef0123456789abcdef01234567"  # pinned', rewritten)
+        self.assertIn('id = "fixture/demo"', rewritten)
+        self.assertIn("[apply]", rewritten)
+
+    def test_update_rolls_back_manifest_on_sync_failure(self) -> None:
+        def exercise() -> None:
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            manifest_before = (self.root / "sources.toml").read_text(encoding="utf-8")
+            lock_before = (self.root / "sources.lock.toml").read_text(encoding="utf-8")
+            cache_before = (
+                self.root / ".cache" / "sources" / "fixture" / self.rev / "demo" / "SKILL.md"
+            ).read_text(encoding="utf-8")
+
+            self._commit_upstream(
+                "boom",
+                "---\nname: demo\ndescription: Use when testing.\n---\n# Demo boom\n",
+            )
+
+            original_promote = core._promote_path
+
+            def boom_promote(source, destination):
+                if destination.name == "demo":
+                    raise core.SyncError("simulated promote failure")
+                return original_promote(source, destination)
+
+            with mock.patch.object(core, "_promote_path", side_effect=boom_promote):
+                with self.assertRaisesRegex(core.SyncError, "simulated promote"):
+                    core.update_sources(config, frozenset(("fixture",)))
+
+            self.assertEqual(
+                (self.root / "sources.toml").read_text(encoding="utf-8"),
+                manifest_before,
+            )
+            self.assertEqual(
+                (self.root / "sources.lock.toml").read_text(encoding="utf-8"),
+                lock_before,
+            )
+            self.assertEqual(
+                (
+                    self.root
+                    / ".cache"
+                    / "sources"
+                    / "fixture"
+                    / self.rev
+                    / "demo"
+                    / "SKILL.md"
+                ).read_text(encoding="utf-8"),
+                cache_before,
+            )
+            restored = core.load_config(self.root)
+            self.assertEqual(restored.sources["fixture"].rev, self.rev)
+
+        self._run(exercise)
+
 
 if __name__ == "__main__":
     unittest.main()

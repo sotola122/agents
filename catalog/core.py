@@ -1902,13 +1902,174 @@ def _write_applied_manifest(
             temporary.unlink()
 
 
+def _remote_head(source: Source) -> str:
+    output = _git(["ls-remote", source.url, "HEAD"]).strip()
+    if not output:
+        raise SyncError(f"remote HEAD を取得できません: {source.id}")
+    tip = output.split()[0].lower()
+    if not OID_RE.fullmatch(tip):
+        raise SyncError(f"remote HEAD が不正です: {source.id}: {tip}")
+    return tip
+
+
+def _parse_simple_toml_string_line(line: str, key: str) -> str | None:
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        return None
+    match = re.fullmatch(
+        rf'{re.escape(key)}\s*=\s*(?:"([^"]*)"|\'([^\']*)\')\s*(?:#.*)?',
+        stripped,
+    )
+    if not match:
+        return None
+    return match.group(1) if match.group(1) is not None else match.group(2)
+
+
+def _replace_simple_toml_string_line(line: str, key: str, new_value: str) -> str:
+    match = re.fullmatch(
+        rf'(\s*{re.escape(key)}\s*=\s*)(?:"([^"]*)"|\'([^\']*)\')(\s*(?:#.*)?)?',
+        line.rstrip("\r\n"),
+    )
+    if not match:
+        raise SyncError(f"sources.toml の {key} 行を更新できません")
+    quote = '"' if match.group(2) is not None else "'"
+    suffix = match.group(4) or ""
+    return f"{match.group(1)}{quote}{new_value}{quote}{suffix}"
+
+
+def _rewrite_source_revs(
+    text: str,
+    expected_old: Mapping[str, str],
+    new_revs: Mapping[str, str],
+) -> str:
+    if set(expected_old) != set(new_revs):
+        raise SyncError("internal: expected_old と new_revs のキーが一致しません")
+    normalized_new = {source_id: rev.lower() for source_id, rev in new_revs.items()}
+    for source_id, rev in normalized_new.items():
+        if not OID_RE.fullmatch(rev):
+            raise SyncError(
+                f"source.rev は完全な commit OID で指定してください: {source_id}"
+            )
+        if expected_old[source_id].lower() == rev:
+            raise SyncError(f"source.rev が更新前後で同じです: {source_id}")
+
+    lines = text.split("\n")
+    pending = set(normalized_new)
+    seen: set[str] = set()
+    index = 0
+    while index < len(lines):
+        if lines[index].strip() != "[[sources]]":
+            index += 1
+            continue
+        index += 1
+        rev_idx: int | None = None
+        source_id: str | None = None
+        current_rev: str | None = None
+        while index < len(lines):
+            stripped = lines[index].strip()
+            if stripped.startswith("["):
+                break
+            parsed_id = _parse_simple_toml_string_line(lines[index], "id")
+            if parsed_id is not None:
+                if source_id is not None:
+                    raise SyncError("[[sources]] に id が重複しています")
+                source_id = parsed_id
+            parsed_rev = _parse_simple_toml_string_line(lines[index], "rev")
+            if parsed_rev is not None:
+                if rev_idx is not None:
+                    raise SyncError(
+                        f"[[sources]] に rev が重複しています"
+                        + (f": {source_id}" if source_id else "")
+                    )
+                rev_idx = index
+                current_rev = parsed_rev
+            index += 1
+        if source_id is None or rev_idx is None or current_rev is None:
+            raise SyncError(
+                "[[sources]] に id と rev が必要です"
+                + (f": {source_id}" if source_id else "")
+            )
+        if source_id in seen:
+            raise SyncError(f"source.id が重複しています: {source_id}")
+        seen.add(source_id)
+        if source_id not in pending:
+            continue
+        expected = expected_old[source_id].lower()
+        if current_rev.lower() != expected:
+            raise SyncError(
+                f"sources.toml の pin が想定と一致しません: {source_id} "
+                f"(file={current_rev[:12]}, expected={expected[:12]})"
+            )
+        lines[rev_idx] = _replace_simple_toml_string_line(
+            lines[rev_idx], "rev", normalized_new[source_id]
+        )
+        pending.remove(source_id)
+
+    if pending:
+        missing = ", ".join(sorted(pending))
+        raise SyncError(f"sources.toml に source がありません: {missing}")
+    return "\n".join(lines)
+
+
+def _write_text_atomic(root: Path, name: str, text: str) -> None:
+    temporary = _unique_file(root, f"{name}.", suffix=".tmp")
+    try:
+        temporary.write_text(text, encoding="utf-8", newline="\n")
+        temporary.replace(root / name)
+    finally:
+        if temporary.exists():
+            temporary.unlink()
+
+
+def update_sources(config: Config, requested: frozenset[str] | None) -> int:
+    with _exclusive_sync_lock(config.root):
+        return _update_sources_locked(config, requested)
+
+
+def _update_sources_locked(config: Config, requested: frozenset[str] | None) -> int:
+    if requested is None:
+        selected = list(config.sources.values())
+    else:
+        unknown = sorted(requested - set(config.sources))
+        if unknown:
+            raise SyncError(f"未知の source です: {', '.join(unknown)}")
+        selected = [config.sources[source_id] for source_id in sorted(requested)]
+
+    updates: dict[str, str] = {}
+    for source in selected:
+        tip = _remote_head(source)
+        if tip == source.rev:
+            print(f"{source.id}: up-to-date pin={source.rev[:12]}")
+            continue
+        print(f"updating {source.id}: {source.rev[:12]} -> {tip[:12]}")
+        updates[source.id] = tip
+
+    if not updates:
+        return 0
+
+    manifest_path = config.root / "sources.toml"
+    original = manifest_path.read_text(encoding="utf-8")
+    expected_old = {source_id: config.sources[source_id].rev for source_id in updates}
+    rewritten = _rewrite_source_revs(original, expected_old, updates)
+    _write_text_atomic(config.root, "sources.toml", rewritten)
+    try:
+        new_config = load_config(config.root)
+        asset_ids = frozenset(
+            asset.id
+            for asset in new_config.assets
+            if asset.source is not None and asset.source in updates
+        )
+        _sync_assets_locked(new_config, asset_ids)
+    except Exception:
+        _write_text_atomic(config.root, "sources.toml", original)
+        raise
+    return 0
+
+
 def check_updates(config: Config) -> int:
     changed = False
     for source in config.sources.values():
-        output = _git(["ls-remote", source.url, "HEAD"]).strip()
-        if not output:
-            raise SyncError(f"remote HEAD を取得できません: {source.id}")
-        tip = output.split()[0].lower()
+        tip = _remote_head(source)
         state = "up-to-date" if tip == source.rev else "update-available"
         changed |= tip != source.rev
         print(f"{source.id}: {state} pin={source.rev[:12]} remote={tip[:12]}")
@@ -1972,6 +2133,12 @@ def build_parser() -> argparse.ArgumentParser:
         command.add_argument("--harness", help="cursor,opencode,omp,pi,shared")
         if name == "diff":
             command.add_argument("--output", help="差分 plan の保存先")
+    update_parser = subparsers.add_parser(
+        "update", help="remote HEAD へ pin を進め cache/lock を同期"
+    )
+    update_parser.add_argument(
+        "--source", action="append", help="source ID（複数回/カンマ区切り可）"
+    )
     subparsers.add_parser("check-updates", help="remote HEAD と pin を比較")
     subparsers.add_parser("status", help="同期状態を表示")
     return parser
@@ -1990,6 +2157,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return 0
         if args.command == "sync":
             return sync_assets(config, _asset_option(args.asset))
+        if args.command == "update":
+            return update_sources(config, _asset_option(args.source))
         with _exclusive_sync_lock(config.root):
             lock = load_lock(config)
             validate(config, lock)

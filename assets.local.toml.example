@@ -33,6 +33,7 @@
 "mattpocock/writing-beats" = true
 "mattpocock/writing-fragments" = true
 "mattpocock/writing-shape" = true
+"mattpocock/wizard" = false
 "mattpocock/git-guardrails-claude-code" = false
 "mattpocock/migrate-to-shoehorn" = false
 "mattpocock/scaffold-exercises" = false
@@ -43,7 +44,6 @@
 "mattpocock/teach" = true
 "mattpocock/to-questionnaire" = true
 "mattpocock/wait-what" = true
-"mattpocock/wizard" = false
 "mattpocock/writing-for-agents" = true
 "k16shikano/cognitive-rhythm-writing" = true
 "k16shikano/japanese-tech-writing" = true
