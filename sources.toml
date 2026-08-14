@@ -8,7 +8,7 @@ allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared"]
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"
-rev = "84fdeffd12f2ee307994d1eb6feb48173b6e0502"
+rev = "8b78b531ab965735c5dc74f6f7a219e1e37326df"
 license = "MIT"
 
 [[sources]]
