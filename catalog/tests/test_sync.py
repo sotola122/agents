@@ -65,7 +65,7 @@ class SyncCliTests(unittest.TestCase):
             [apply]
             default_kinds = ["skill", "context"]
             default_harnesses = ["cursor"]
-            allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared"]
+            allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared", "hermes"]
 
             [[sources]]
             id = "fixture"
@@ -182,7 +182,7 @@ class SyncCliTests(unittest.TestCase):
         path = self.root / "sources.toml"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
-                'allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared"]',
+                'allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared", "hermes"]',
                 'allowed_harnesses = ["catalog", "cursor"]',
             ),
             encoding="utf-8",

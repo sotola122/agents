@@ -3,7 +3,7 @@ schema_version = 1
 [apply]
 default_kinds = ["skill", "agent", "context"]
 default_harnesses = ["cursor"]
-allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared"]
+allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared", "hermes"]
 
 [[sources]]
 id = "mattpocock-skills"

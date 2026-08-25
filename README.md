@@ -24,6 +24,7 @@ Anago はレビュー／ワークフロー skill を自リポジトリで管理�
 - OMP：`~/.omp/`
 - Pi：`~/.pi/agent/`
 - Shared：`~/.agents/skills/`
+- Hermes：`~/.hermes/skills/`
 
 ## 動作環境
 
@@ -97,7 +98,7 @@ python -m catalog apply --harness cursor,shared --kind skill
 
 `--kind` には `skill`、`agent`、`context` を指定します。
 
-`--harness` には `cursor`、`opencode`、`omp`、`pi`、`shared` を指定します。
+`--harness` には `cursor`、`opencode`、`omp`、`pi`、`shared`、`hermes` を指定します。
 ここでいう `harness` は、配布先となるツールや共通ディレクトリを指します。
 
 指定を省略すると、`sources.toml` の `[apply]` にある `default_kinds` と `default_harnesses` が使われます。

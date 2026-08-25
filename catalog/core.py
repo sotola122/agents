@@ -27,7 +27,7 @@ EXECUTABLE_FILE_MODE = 0o755
 
 
 KINDS = ("skill", "agent", "context")
-HARNESSES = ("cursor", "opencode", "omp", "pi", "shared")
+HARNESSES = ("cursor", "opencode", "omp", "pi", "shared", "hermes")
 SUPPORTED: Mapping[str, frozenset[str]] = {
     "skill": frozenset(HARNESSES),
     "agent": frozenset(("cursor", "opencode", "omp")),
@@ -1411,6 +1411,8 @@ def _harness_root(harness: str) -> Path:
         return home / ".pi" / "agent"
     if harness == "shared":
         return home / ".agents"
+    if harness == "hermes":
+        return home / ".hermes"
     raise SyncError(f"未知の harness です: {harness}")
 
 
