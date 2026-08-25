@@ -15,14 +15,16 @@ Profiles: [`profiles.yaml`](profiles.yaml). Prompt contracts: [`prompts/`](promp
 
 ### 0. Smoke only when asked
 
-When the user asks to check Cursor authentication, model access, or connectivity, resolve [`prompts/smoke.md`](prompts/smoke.md) and the target workspace to absolute paths, then run:
+When the user asks to check Cursor authentication, model access, or connectivity, resolve [`prompts/smoke.md`](prompts/smoke.md) to an absolute path. Create a unique temporary empty workspace outside the repository and set its absolute path as `WORKSPACE`; smoke does not need project context.
 
 ```bash
 agent --print --mode ask --sandbox enabled --trust \
   --workspace "$WORKSPACE" "$(<"$SMOKE_PROMPT")"
 ```
 
-Completion: skipped when not requested, or exit code is 0 and trimmed stdout is exactly `OK`. On any other result, stop and report the failure without running the real task.
+Cursor may create `.cursor/` runtime files inside that temporary workspace. Inspect the workspace for unexpected output, then remove it after the smoke run.
+
+Completion: skipped when not requested, or exit code is 0, trimmed stdout is exactly `OK`, and the temporary workspace is removed. On any other result, stop and report the failure without running the real task.
 
 ### 1. Choose one permission profile
 

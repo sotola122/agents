@@ -56,6 +56,8 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertIn("dirty.patch", text)
         self.assertIn("archive untracked", text)
         self.assertIn("compare the reconstructed manifest", text)
+        self.assertIn("temporary empty workspace", text)
+        self.assertIn("remove it after the smoke run", text)
 
     def test_local_asset_example_enables_current_names(self) -> None:
         with (ROOT / "assets.local.toml.example").open("rb") as stream:
