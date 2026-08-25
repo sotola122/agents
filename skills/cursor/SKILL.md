@@ -15,10 +15,11 @@ Profiles: [`profiles.yaml`](profiles.yaml). Prompt contracts: [`prompts/`](promp
 
 ### 0. Smoke only when asked
 
-When the user asks to check Cursor authentication, model access, or connectivity, read [`prompts/smoke.md`](prompts/smoke.md) and run:
+When the user asks to check Cursor authentication, model access, or connectivity, resolve [`prompts/smoke.md`](prompts/smoke.md) and the target workspace to absolute paths, then run:
 
 ```bash
-agent --print --mode ask --sandbox enabled --trust "Respond with exactly: OK"
+agent --print --mode ask --sandbox enabled --trust \
+  --workspace "$WORKSPACE" "$(<"$SMOKE_PROMPT")"
 ```
 
 Completion: skipped when not requested, or exit code is 0 and trimmed stdout is exactly `OK`. On any other result, stop and report the failure without running the real task.
@@ -74,13 +75,19 @@ Completion: base -> optional append -> task block exists once, every acceptance 
 
 ### 4. Choose the workspace
 
-- `review`: use the current repository read-only.
-- `verify`: use `agent --worktree` when the tree is dirty or commands may rewrite tracked files; otherwise capture status plus content hashes/diffs before running in place.
-- `implement`: do not co-edit a working tree. Use an agreed worktree when work runs in parallel; otherwise the parent waits for Cursor to exit.
+- `review`: resolve the current repository to absolute `WORKSPACE`; use it read-only.
+- `verify` on a clean tree: use the current absolute workspace, or Cursor-managed `--worktree` when commands may rewrite tracked files.
+- `verify` on a dirty tree: materialize the exact dirty state in a caller-owned disposable worktree before delegation:
+  1. Record `base=$(git rev-parse HEAD)` and save `git diff --binary HEAD` as `dirty.patch` outside the repository.
+  2. Enumerate untracked paths with `git ls-files --others --exclude-standard -z`; archive untracked contents with type, mode, and symlink targets preserved.
+  3. Create a detached worktree at `base`, apply `dirty.patch`, and restore the archived untracked paths.
+  4. Record a manifest containing the base SHA plus every tracked/untracked path's content hash, type, mode, and symlink target.
+  5. Recompute and compare the reconstructed manifest in the worktree. On any mismatch, remove the worktree and either verify in place with explicit side-effect monitoring or stop as incomplete; never verify clean `HEAD` as a substitute for dirty state.
+- `implement`: do not co-edit a working tree. Use an agreed caller-owned worktree when work runs in parallel; otherwise the parent waits for Cursor to exit.
 
 Before every writable run, capture `git status --short` and content-level diffs/hashes for already-dirty and untracked paths of interest.
 
-Completion: `workspace` and its isolation reason are in the task block; the pre-run state is captured for writable profiles.
+Completion: absolute `WORKSPACE` and its isolation reason are in the task block; dirty-state parity is proven when materialized; the pre-run state is captured for writable profiles.
 
 ### 5. Run Cursor Agent
 
@@ -89,16 +96,18 @@ From the selected repository/worktree, pass the assembled prompt as one shell ar
 Review:
 
 ```bash
-agent --print --mode ask --sandbox enabled --trust "$(<"$PROMPT_FILE")"
+agent --print --mode ask --sandbox enabled --trust \
+  --workspace "$WORKSPACE" "$(<"$PROMPT_FILE")"
 ```
 
 Verify or implement:
 
 ```bash
-agent --print --force --sandbox enabled --trust "$(<"$PROMPT_FILE")"
+agent --print --force --sandbox enabled --trust \
+  --workspace "$WORKSPACE" "$(<"$PROMPT_FILE")"
 ```
 
-Add `--model <model>` only when resolved in step 2. For an isolated Cursor-managed worktree, add `--worktree [name]` and record the resulting path. Capture stdout, stderr, and exit code. Do not substitute a local answer when Cursor fails.
+Add `--model <model>` only when resolved in step 2. For a clean-HEAD task using Cursor-managed isolation, use `--worktree [name]` instead of `--workspace` and record the resulting path; never use this as a shortcut for materializing dirty state. Capture stdout, stderr, and exit code. Do not substitute a local answer when Cursor fails.
 
 Completion: the process exited and all output is captured; nonzero exit, empty stdout, authentication/model errors, and timeouts are reported as delegation failures.
 

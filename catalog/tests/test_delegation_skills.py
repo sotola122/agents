@@ -47,6 +47,16 @@ class DelegationSkillTests(unittest.TestCase):
         missing = sorted(path for path in CURSOR_FILES if not (package / path).is_file())
         self.assertEqual(missing, [])
 
+    def test_cursor_skill_pins_workspace_and_preserves_dirty_state(self) -> None:
+        text = (ROOT / "skills" / "cursor" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn('--workspace "$WORKSPACE"', text)
+        self.assertIn("dirty.patch", text)
+        self.assertIn("archive untracked", text)
+        self.assertIn("compare the reconstructed manifest", text)
+
     def test_local_asset_example_enables_current_names(self) -> None:
         with (ROOT / "assets.local.toml.example").open("rb") as stream:
             skills = tomllib.load(stream)["skills"]
