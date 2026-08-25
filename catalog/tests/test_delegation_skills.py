@@ -9,14 +9,6 @@ import unittest
 ROOT = Path(__file__).resolve().parents[2]
 PACKAGES = ("pi", "codex", "cursor")
 LINK_RE = re.compile(r"\[[^]]+\]\((?!https?://|#)([^)]+)\)")
-CURSOR_FILES = {
-    "profiles.yaml",
-    "prompts/smoke.md",
-    "prompts/review.md",
-    "prompts/verify.md",
-    "prompts/implement.md",
-    "prompts/append/adversarial.md",
-}
 
 
 class DelegationSkillTests(unittest.TestCase):
@@ -38,26 +30,32 @@ class DelegationSkillTests(unittest.TestCase):
             for relative in LINK_RE.findall(text):
                 self.assertTrue((package / relative).exists(), f"{name}: {relative}")
 
+    def test_packages_are_cli_only(self) -> None:
+        forbidden = (
+            "prompts/",
+            "profiles.yaml",
+            "provider.yaml",
+            "modalities.yaml",
+            "acceptance_checks",
+            "task block",
+            "output heading",
+        )
+        for name in PACKAGES:
+            package = ROOT / "skills" / name
+            files = {
+                path.relative_to(package).as_posix()
+                for path in package.rglob("*")
+                if path.is_file()
+            }
+            self.assertEqual(files, {"SKILL.md"}, name)
+
+            text = (package / "SKILL.md").read_text(encoding="utf-8")
+            for token in forbidden:
+                self.assertNotIn(token, text, f"{name}: {token}")
+
     def test_obsolete_package_directories_are_absent(self) -> None:
         self.assertFalse((ROOT / "skills" / "delegate-pi").exists())
         self.assertFalse((ROOT / "skills" / "delegate-codex").exists())
-
-    def test_cursor_companion_files_exist(self) -> None:
-        package = ROOT / "skills" / "cursor"
-        missing = sorted(path for path in CURSOR_FILES if not (package / path).is_file())
-        self.assertEqual(missing, [])
-
-    def test_cursor_skill_pins_workspace_and_preserves_dirty_state(self) -> None:
-        text = (ROOT / "skills" / "cursor" / "SKILL.md").read_text(
-            encoding="utf-8"
-        )
-
-        self.assertIn('--workspace "$WORKSPACE"', text)
-        self.assertIn("dirty.patch", text)
-        self.assertIn("archive untracked", text)
-        self.assertIn("compare the reconstructed manifest", text)
-        self.assertIn("temporary empty workspace", text)
-        self.assertIn("remove it after the smoke run", text)
 
     def test_local_asset_example_enables_current_names(self) -> None:
         with (ROOT / "assets.local.toml.example").open("rb") as stream:

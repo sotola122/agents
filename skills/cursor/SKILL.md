@@ -1,135 +1,119 @@
 ---
 name: cursor
-description: >-
-  Delegate bounded review, verification, implementation, or smoke checks to
-  the Cursor Agent CLI (`agent --print`).
+description: Operate Cursor Agent CLI for coding and inspection.
 ---
 
-# Cursor CLI Delegation
+# Cursor Agent CLI
 
-Hand one bounded task to Cursor Agent as a non-interactive child. Use `agent --print`; do not open the interactive TUI for delegation.
+Operate Cursor Agent non-interactively through Hermes `terminal` and `process` tools. Keep task content in the current request; this skill covers only CLI behavior, permissions, workspaces, and verification.
 
-Profiles: [`profiles.yaml`](profiles.yaml). Prompt contracts: [`prompts/`](prompts/).
+## When to Use
 
-## Steps
+- The user explicitly asks to run or delegate work to Cursor Agent
+- A bounded coding or inspection task needs Cursor's CLI
+- Cursor authentication, model access, modes, worktrees, or output needs checking
 
-### 0. Smoke only when asked
-
-When the user asks to check Cursor authentication, model access, or connectivity, resolve [`prompts/smoke.md`](prompts/smoke.md) to an absolute path. Create a unique temporary empty workspace outside the repository and set its absolute path as `WORKSPACE`; smoke does not need project context.
-
-```bash
-agent --print --mode ask --sandbox enabled --trust \
-  --workspace "$WORKSPACE" "$(<"$SMOKE_PROMPT")"
-```
-
-Cursor may create `.cursor/` runtime files inside that temporary workspace. Inspect the workspace for unexpected output, then remove it after the smoke run.
-
-Completion: skipped when not requested, or exit code is 0, trimmed stdout is exactly `OK`, and the temporary workspace is removed. On any other result, stop and report the failure without running the real task.
-
-### 1. Choose one permission profile
-
-Read [`profiles.yaml`](profiles.yaml) and select exactly one profile:
-
-| Task | Profile |
-| --- | --- |
-| Review, design check, static bug hunt | `review` |
-| Build, test, lint, reproduce | `verify` |
-| Implement, fix, refactor | `implement` |
-
-Apply every profile field:
-
-- `mode: ask` -> `--mode ask`; `mode: agent` -> omit `--mode`
-- `sandbox` -> `--sandbox <value>`
-- `force: true` -> `--force`; false -> omit it
-- Always pass `--trust` for headless workspace trust
-
-`--force` auto-approves tool calls and makes a run shell/file writable. Select `implement` only when the user explicitly requested edits. Treat `verify` as technically writable even though its prompt forbids intentional source edits.
-
-Completion: profile, exact flags, and `writable` state are recorded. Never widen a profile silently.
-
-### 2. Resolve model override
-
-Pass `--model <model>` only when the user names a model. Otherwise omit it and use Cursor's configured default.
-
-Completion: one explicit model is selected or the override is deliberately absent.
-
-### 3. Assemble one prompt
-
-Require `prompts/<profile>.md`. Concatenate in order:
-
-1. Base prompt for the selected profile
-2. [`prompts/append/adversarial.md`](prompts/append/adversarial.md) only for an adversarial/hostile/red-team lens
-3. Task block containing:
+## Readiness
 
 ```text
-objective:
-in_scope:
-out_of_scope:
-acceptance_checks:  # numbered and independently verifiable
-allowed_task_side_effects: none | [explicit list]
-workspace: in_place | worktree
-stop_conditions:
+terminal(command="agent --version")
+terminal(command="agent status --format text")
+terminal(command="agent --list-models")
 ```
 
-Write the result to a unique UTF-8 temporary file outside the repository. Do not include secrets, API keys, or `.env` contents.
+`agent login` is interactive and user-owned. Never type or expose `CURSOR_API_KEY` on the user's behalf.
 
-Completion: base -> optional append -> task block exists once, every acceptance check is testable, and no secret is present.
+Completion: the installed binary reports an authenticated account and the requested model is available.
 
-### 4. Choose the workspace
+## Non-Interactive Runs
 
-- `review`: resolve the current repository to absolute `WORKSPACE`; use it read-only.
-- `verify` on a clean tree: use the current absolute workspace, or Cursor-managed `--worktree` when commands may rewrite tracked files.
-- `verify` on a dirty tree: materialize the exact dirty state in a caller-owned disposable worktree before delegation:
-  1. Record `base=$(git rev-parse HEAD)` and save `git diff --binary HEAD` as `dirty.patch` outside the repository.
-  2. Enumerate untracked paths with `git ls-files --others --exclude-standard -z`; archive untracked contents with type, mode, and symlink targets preserved.
-  3. Create a detached worktree at `base`, apply `dirty.patch`, and restore the archived untracked paths.
-  4. Record a manifest containing the base SHA plus every tracked/untracked path's content hash, type, mode, and symlink target.
-  5. Recompute and compare the reconstructed manifest in the worktree. On any mismatch, remove the worktree and either verify in place with explicit side-effect monitoring or stop as incomplete; never verify clean `HEAD` as a substitute for dirty state.
-- `implement`: do not co-edit a working tree. Use an agreed caller-owned worktree when work runs in parallel; otherwise the parent waits for Cursor to exit.
+Use `--print`, pin the absolute workspace, and enable Cursor's sandbox explicitly:
 
-Before every writable run, capture `git status --short` and content-level diffs/hashes for already-dirty and untracked paths of interest.
-
-Completion: absolute `WORKSPACE` and its isolation reason are in the task block; dirty-state parity is proven when materialized; the pre-run state is captured for writable profiles.
-
-### 5. Run Cursor Agent
-
-From the selected repository/worktree, pass the assembled prompt as one shell argument.
-
-Review:
-
-```bash
-agent --print --mode ask --sandbox enabled --trust \
-  --workspace "$WORKSPACE" "$(<"$PROMPT_FILE")"
+```text
+terminal(
+  command="agent --print --sandbox enabled --trust --workspace /absolute/project/path '<task>'",
+  workdir="/absolute/project/path",
+  timeout=300,
+)
 ```
 
-Verify or implement:
+`--print` exits after the run. It can access shell and write tools; without `--force`, actions requiring approval may not proceed in headless mode.
 
-```bash
-agent --print --force --sandbox enabled --trust \
-  --workspace "$WORKSPACE" "$(<"$PROMPT_FILE")"
+## Read-Only Modes
+
+- `--mode ask` — Q&A and inspection without edits
+- `--mode plan` / `--plan` — read-only planning
+
+```text
+terminal(command="agent --print --mode ask --sandbox enabled --trust --workspace /project '<task>'")
 ```
 
-Add `--model <model>` only when resolved in step 2. For a clean-HEAD task using Cursor-managed isolation, use `--worktree [name]` instead of `--workspace` and record the resulting path; never use this as a shortcut for materializing dirty state. Capture stdout, stderr, and exit code. Do not substitute a local answer when Cursor fails.
+Use read-only modes for review and diagnosis. Omit `--force`.
 
-Completion: the process exited and all output is captured; nonzero exit, empty stdout, authentication/model errors, and timeouts are reported as delegation failures.
+## Writable Runs
 
-### 6. Verify the handoff
+Use `--force` only for user-requested implementation or verification that requires command execution:
 
-All are required:
+```text
+terminal(command="agent --print --force --sandbox enabled --trust --workspace /project '<task>'")
+```
 
-1. Exit code is 0.
-2. Output begins with the profile heading (`# Review Result`, `# Verify Result`, or `# Implement Result`).
-3. Every numbered acceptance check has explicit evidence.
-4. Actual side effects are a subset of `allowed_task_side_effects`.
+`--force` auto-allows commands unless explicitly denied. `--yolo` is an alias; prefer the clearer `--force`. One agent owns a writable workspace at a time.
 
-After `verify` or `implement`, recapture `git status --short`, content diffs/hashes, and relevant tests. Report newly dirty paths and changed already-dirty paths. Remove a disposable worktree only after retained evidence or intended edits have been transferred and verified.
+## Models and Output
 
-Completion: declare success only when all four checks and parent-side verification pass; otherwise report `Delegation incomplete` with the unmet checks.
+- `--model <model>` — select a model
+- `--output-format text|json|stream-json` — output format in print mode
+- `--stream-partial-output` — emit text deltas with `stream-json`
+- `--continue` — continue the latest conversation
+- `--resume [chatId]` — resume a selected conversation
 
-## Hard rules
+Use text for a simple handoff and JSON/stream-JSON when terminal events or machine parsing are required.
 
-- Review and smoke never use `--force`.
-- Every run passes `--sandbox enabled` and `--trust` explicitly.
-- No Cursor-authored commit, push, PR, credential access, or secret in prompts.
-- One child owns a writable working tree at a time.
-- Provider-backed smoke runs only when requested.
+## Workspaces and Worktrees
+
+Always pass `--workspace <absolute-path>` for in-place or caller-managed worktrees. Use Cursor-managed isolation only for clean-HEAD tasks:
+
+```text
+agent --print --worktree [name] --worktree-base <ref> --sandbox enabled --trust '<task>'
+```
+
+Cursor-managed worktrees start from a Git ref and do not include dirty tracked or untracked state. Reproduce and hash-verify dirty state in a caller-managed worktree, or operate in place with explicit side-effect monitoring.
+
+`--add-dir <path>` expands workspace access; grant only paths required by the user request.
+
+## Smoke Checks
+
+Run provider smoke checks in a unique temporary empty workspace because Cursor may create `.cursor/` runtime files:
+
+```text
+terminal(command="agent --print --mode ask --sandbox enabled --trust --workspace <temp-dir> '<minimal task>'")
+```
+
+Inspect and remove the temporary workspace after the process exits. A successful auth-status check alone does not prove model connectivity.
+
+## Background and Interactive Runs
+
+For a long bounded run, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. Interactive Cursor Agent requires `pty=true`; prefer print mode for delegation.
+
+## Workspace Safety
+
+Capture `git status --short` plus content-level diffs/hashes before writable runs, and compare them afterward. Cursor must not commit, push, open a PR, or access credentials unless the user separately requests and authorizes that action.
+
+## Verification
+
+After every run:
+
+1. Check exit status and retain actual stdout/stderr.
+2. When using JSON output, confirm a terminal completion event.
+3. For writable runs, inspect repository status, content diff, and relevant tests.
+4. Report model, mode, sandbox, workspace, and any incomplete checks.
+
+Completion: process success and every workspace side effect are accounted for.
+
+## Pitfalls
+
+- `--trust` can create workspace-local Cursor runtime files.
+- `--sandbox disabled` removes the CLI sandbox override; avoid it.
+- Cursor-managed worktree setup scripts can write files; use `--skip-worktree-setup` only when intentionally bypassing them.
+- `--approve-mcps` approves every configured MCP server for the run; use it only when explicitly required.
