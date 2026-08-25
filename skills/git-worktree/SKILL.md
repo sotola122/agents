@@ -10,7 +10,7 @@ Lifecycle only for user-owned linked worktrees: `list` | `create` | `retain` | `
 
 Do not perform implementation or verification inside the worktree; return that to the caller.
 
-Disposable worktrees owned by `delegate-pi` or `delegate-codex` are out of scope. Refuse those paths on every entry.
+Disposable worktrees owned by `pi`, `codex`, or `cursor` delegation are out of scope. Refuse those paths on every entry.
 
 No writing-norm pointers.
 

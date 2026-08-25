@@ -1,4 +1,4 @@
-# Permission profiles for delegate-pi.
+# Permission profiles for Pi CLI delegation.
 # Pi built-ins: read, bash, edit, write, grep, find, ls
 # --tools is a model allowlist, not an OS sandbox.
 # writable: true only when bash is in the allowlist (shell can rewrite files).

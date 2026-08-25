@@ -1,12 +1,11 @@
 ---
-name: delegate-pi
+name: pi
 description: >-
-  Delegate a bounded coding task to the Pi coding agent via CLI (`pi --print`).
-  Use for second-opinion review, verification, implementation, smoke-test of Pi
-  connectivity, or multimodal work (vision, document/PDF, browser UI check).
+  Delegate bounded review, verification, implementation, smoke, or multimodal
+  work to the Pi CLI (`pi --print`).
 ---
 
-# Delegate Pi
+# Pi CLI Delegation
 
 Hand one bounded task to Pi as a child agent. Prefer `--print` (process and exit).
 Do not start interactive `pi` for delegation.
@@ -64,7 +63,7 @@ When the task involves images, PDFs, or browser/UI checks — otherwise skip wit
 4. Split inputs:
    - `cli_attachments` — `@` images and deliberate text (diffs, rule files)
    - `task_input_paths` — filesystem paths the child reads (PDFs go here; never `@` a PDF as vision)
-5. Create `artifact_dir`: unique empty dir `<temp>/delegate-pi/<timestamp>-<rand>/`. Record under `orchestration_artifacts`.
+5. Create `artifact_dir`: unique empty dir `<temp>/pi/<timestamp>-<rand>/`. Record under `orchestration_artifacts`.
 6. **Validate selected backend**:
    - `compatible_profiles` must include the profile from step 1.
    - Effective allowlist = `profile.tools ∪ backend.tool_names − profile.exclude_tools`. Collision → **stop**. Nonempty `requires_tools` with `no-tools` profile → **stop**.

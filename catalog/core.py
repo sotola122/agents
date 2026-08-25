@@ -1430,6 +1430,8 @@ def _target_for(asset: Asset, harness: str) -> str:
     catalog_name = PurePosixPath(asset.target).name
     stem = PurePosixPath(catalog_name).stem
     if asset.kind == "skill":
+        if harness == "hermes":
+            return f"skills/anago/{catalog_name}"
         return f"skills/{catalog_name}"
     if asset.kind == "agent":
         return f"agents/{catalog_name}"

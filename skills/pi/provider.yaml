@@ -1,4 +1,4 @@
-# Default Pi provider/model for delegate-pi.
+# Default provider/model for Pi CLI delegation.
 # Single source for field-level resolution. Do not duplicate literals in SKILL.md.
 
 provider: openai-codex

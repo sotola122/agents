@@ -13,7 +13,7 @@ agent、AGENTS.md、skillsを一か所で管理し、Cursor や OpenCode など�
 - `agents/`：このリポジトリで直接管理するエージェント向けプロンプト
 - `context/`：このリポジトリで直接管理する、各ツールで共有する指示
 
-Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリから Anago が同期するのは harness skill（`skills/delegate-pi`、`skills/delegate-codex`）のみ。
+Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/cursor`）を管理する。
 
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
@@ -24,7 +24,7 @@ Anago はレビュー／ワークフロー skill を自リポジトリで管理�
 - OMP：`~/.omp/`
 - Pi：`~/.pi/agent/`
 - Shared：`~/.agents/skills/`
-- Hermes：`~/.hermes/skills/`
+- Hermes：`~/.hermes/skills/anago/`
 
 ## 動作環境
 
@@ -118,8 +118,9 @@ default_harnesses = ["cursor"]
 "mattpocock/ask-matt" = false
 
 [skills]
-delegate-pi = true
-delegate-codex = true
+pi = true
+codex = true
+cursor = true
 ```
 
 - `[external]` … `sources.toml` の `asset.id`。セクション省略時は外部をすべて適用。あるときは `true` だけ適用
@@ -220,12 +221,22 @@ python -m catalog update --source example-skills
 ```toml
 # assets.local.toml（gitignored）
 [skills]
-delegate-pi = true
-delegate-codex = true
+pi = true
+codex = true
+cursor = true
 ```
 
 `agents/` や `context/` の local ファイルも同様に `[agents]` / `[context]` で有効化できます。
 ドットを含むファイル名は TOML キーを引用符で囲みます（例: `"AGENTS.md" = true`）。
+
+## Hermes の旧 skill 配置を削除する
+
+Hermes harness の skill は `~/.hermes/skills/anago/<name>/` へ配布します。
+旧 `~/.hermes/skills/<name>/` からの migration 機能はありません。
+
+切り替え時は `~/.hermes/.catalog-applied.toml` の `kind = "skill"` entry と実在する directory を照合し、旧 `skills/<name>` に一致する管理対象だけを列挙します。
+一覧を確認してから各 directory を個別に削除し、`python -m catalog apply --harness hermes --kind skill` を実行してください。
+`~/.hermes/skills/*` のような wildcard は使わず、manifest にない user-owned skill と `~/.hermes/skills/anago/` は残します。
 
 ## テスト
 

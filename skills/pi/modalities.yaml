@@ -1,4 +1,4 @@
-# Modality overlay for delegate-pi multimodal runs.
+# Modality overlay for Pi CLI delegation.
 # Modalities validate against the chosen profile — never upgrade it silently.
 # upgrade_policy: never
 #

@@ -1,4 +1,4 @@
-# Pi CLI reference (delegate-pi)
+# Pi CLI reference
 
 Single source for path passing, quoting, and argument assembly. Parent shell differs; child `bash` is always POSIX.
 
@@ -67,7 +67,7 @@ Record paths in task blocks with forward slashes or Git-Bash `/c/Users/...` form
 
 Pi built-ins: `read`, `bash`, `edit`, `write`, `grep`, `find`, `ls`.
 
-- `--tools a,b,c` — allowlist (required by delegate-pi)
+- `--tools a,b,c` — allowlist (required by this skill)
 - `--exclude-tools a,b` — denylist (optional belt on review)
 - `--no-tools` — disable all (no-tools profile)
 

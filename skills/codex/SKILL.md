@@ -1,13 +1,11 @@
 ---
-name: delegate-codex
+name: codex
 description: >-
-  Delegate a bounded coding task to the Codex CLI (`codex review` / `codex exec`).
-  Use when the user wants a second-opinion review, verification (build/test/lint),
-  or implementation handed off to Codex, mentions running/delegating work to codex,
-  or asks to smoke-test / confirm Codex connectivity.
+  Delegate bounded review, verification, implementation, or smoke checks to
+  the Codex CLI (`codex review` / `codex exec`).
 ---
 
-# Delegate Codex
+# Codex CLI Delegation
 
 Hand one bounded task to Codex as a child agent. Prefer non-interactive
 `codex review` / `codex exec`. Do not start the interactive TUI for delegation.

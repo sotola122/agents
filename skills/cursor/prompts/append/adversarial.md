@@ -1,0 +1,1 @@
+Apply an adversarial lens: try to falsify the intended behavior with malformed inputs, boundary states, concurrency, partial failure, hostile configuration, and permission mistakes relevant to the stated scope. Report only evidence-backed issues; do not repeat the base output schema.

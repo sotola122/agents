@@ -1,4 +1,4 @@
-# Permission profiles for delegate-codex.
+# Permission profiles for Codex CLI delegation.
 # Always pass an explicit sandbox (exec: --sandbox; review: -c sandbox_mode=…).
 # Sandbox is the OS/FS boundary for model-generated commands.
 

@@ -178,6 +178,41 @@ class SyncCliTests(unittest.TestCase):
 
         self._run(exercise)
 
+    def test_hermes_skill_target_is_namespaced_under_anago(self) -> None:
+        asset = core.Asset(
+            id="fixture/demo",
+            source="fixture",
+            kind="skill",
+            path="skills/demo",
+            target="skills/demo",
+            harnesses=("cursor", "hermes"),
+        )
+
+        self.assertEqual(core._target_for(asset, "hermes"), "skills/anago/demo")
+        self.assertEqual(core._target_for(asset, "cursor"), "skills/demo")
+
+    def test_hermes_skill_apply_uses_anago_namespace(self) -> None:
+        def exercise() -> None:
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            lock = core.load_lock(config, required=True)
+
+            lines, operations, pi, applied = core.plan_changes(
+                config, lock, ("skill",), ("hermes",)
+            )
+            self.assertTrue(lines)
+            core.apply_changes(
+                config, operations, pi, applied, kinds=("skill",)
+            )
+
+            installed = self.home / ".hermes" / "skills" / "anago" / "demo"
+            self.assertTrue((installed / "SKILL.md").is_file())
+            self.assertFalse(
+                (self.home / ".hermes" / "skills" / "demo").exists()
+            )
+
+        self._run(exercise)
+
     def test_validate_rejects_catalog_harness(self) -> None:
         path = self.root / "sources.toml"
         path.write_text(
