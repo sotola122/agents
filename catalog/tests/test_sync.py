@@ -366,6 +366,59 @@ class SyncCliTests(unittest.TestCase):
 
         self._run(exercise)
 
+    def test_local_skill_can_be_excluded_from_one_harness(self) -> None:
+        def exercise() -> None:
+            local_dir = self.root / "skills" / "codex"
+            local_dir.mkdir(parents=True)
+            (local_dir / "SKILL.md").write_text("# Codex\n", encoding="utf-8")
+            (self.root / "assets.local.toml").write_text(
+                "[skills]\ncodex = true\n", encoding="utf-8"
+            )
+
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            lock = core.load_lock(config, required=True)
+            lines, operations, pi, applied = core.plan_changes(
+                config, lock, ("skill",), ("hermes",)
+            )
+            core.apply_changes(
+                config, operations, pi, applied, kinds=("skill",)
+            )
+            installed = self.home / ".hermes" / "skills" / "anago" / "codex"
+            self.assertTrue((installed / "SKILL.md").is_file())
+
+            manifest = self.root / "sources.toml"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8").replace(
+                    'allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared", "hermes"]',
+                    'allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared", "hermes"]\n\n'
+                    '[apply.local_skill_excludes]\nhermes = ["codex"]',
+                ),
+                encoding="utf-8",
+            )
+            config = core.load_config(self.root)
+            codex = next(asset for asset in config.assets if asset.id == "local/codex")
+            self.assertIn("cursor", codex.harnesses)
+            self.assertNotIn("hermes", codex.harnesses)
+
+            lines, operations, pi, applied = core.plan_changes(
+                config, lock, ("skill",), ("hermes",)
+            )
+            self.assertTrue(
+                any("[local/codex → hermes remove]" in line for line in lines)
+            )
+            core.apply_changes(
+                config, operations, pi, applied, kinds=("skill",)
+            )
+            self.assertFalse(installed.exists())
+
+            lines, _, _, _ = core.plan_changes(
+                config, lock, ("skill",), ("cursor",)
+            )
+            self.assertTrue(any("[local/codex → cursor]" in line for line in lines))
+
+        self._run(exercise)
+
     def test_sources_toml_rejects_local_assets(self) -> None:
         manifest = self.root / "sources.toml"
         manifest.write_text(

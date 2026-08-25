@@ -5,6 +5,9 @@ default_kinds = ["skill", "agent", "context"]
 default_harnesses = ["cursor"]
 allowed_harnesses = ["cursor", "opencode", "omp", "pi", "shared", "hermes"]
 
+[apply.local_skill_excludes]
+hermes = ["codex"]
+
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"

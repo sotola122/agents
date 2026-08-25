@@ -74,6 +74,12 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertNotIn("delegate-pi", skills)
         self.assertNotIn("delegate-codex", skills)
 
+    def test_anago_codex_is_excluded_only_from_hermes(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            apply = tomllib.load(stream)["apply"]
+
+        self.assertEqual(apply["local_skill_excludes"], {"hermes": ["codex"]})
+
 
 if __name__ == "__main__":
     unittest.main()

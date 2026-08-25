@@ -104,6 +104,16 @@ python -m catalog apply --harness cursor,shared --kind skill
 
 指定を省略すると、`sources.toml` の `[apply]` にある `default_kinds` と `default_harnesses` が使われます。
 
+特定のlocal skillを一部のharnessだけから除外する場合は、`sources.toml`の`[apply.local_skill_excludes]`にharnessごとのskill名を指定します。
+現在はHermes標準のCodex CLI skillと重複するため、このリポジトリの`skills/codex`だけをHermesへのapply対象から除外しています。
+
+```toml
+[apply.local_skill_excludes]
+hermes = ["codex"]
+```
+
+この除外はlocal skillだけに適用されます。`codex`はCursor、OpenCode、OMP、Pi、Sharedには従来どおり配布できます。
+
 端末ごとに既定の配布先を変えたい場合は、`apply.local.toml` を作成します。
 このファイルは Git の管理対象外です。
 

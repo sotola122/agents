@@ -177,6 +177,45 @@ def _read_assets_local(root: Path) -> dict:
     return data
 
 
+def _parse_local_skill_excludes(
+    value: object,
+    *,
+    root: Path,
+    allowed_harnesses: Sequence[str],
+) -> dict[str, frozenset[str]]:
+    if value is None:
+        return {}
+    if not isinstance(value, dict):
+        raise SyncError("apply.local_skill_excludes は harness ごとのテーブルです")
+
+    result: dict[str, frozenset[str]] = {}
+    for harness, raw_names in value.items():
+        if harness not in allowed_harnesses:
+            raise SyncError(
+                f"apply.local_skill_excludes に未知の harness があります: {harness}"
+            )
+        if not isinstance(raw_names, list) or not all(
+            isinstance(name, str) for name in raw_names
+        ):
+            raise SyncError(
+                f"apply.local_skill_excludes.{harness} は skill 名の配列です"
+            )
+        names: set[str] = set()
+        for raw_name in raw_names:
+            name = _safe_id(raw_name, f"apply.local_skill_excludes.{harness}")
+            if len(PurePosixPath(name).parts) != 1:
+                raise SyncError(
+                    f"apply.local_skill_excludes.{harness} は skill 名だけを指定してください: {name}"
+                )
+            if not (root / "skills" / name).is_dir():
+                raise SyncError(
+                    f"apply.local_skill_excludes.{harness} に対応する local skill がありません: {name}"
+                )
+            names.add(name)
+        result[harness] = frozenset(names)
+    return result
+
+
 def _parse_enable_table(
     table: object, *, section: str, known_ids: Iterable[str] | None = None
 ) -> dict[str, bool]:
@@ -208,6 +247,7 @@ def _load_local_assets(
     root: Path,
     data: Mapping[str, object],
     allowed_harnesses: Sequence[str],
+    local_skill_excludes: Mapping[str, frozenset[str]],
     *,
     asset_ids: set[str],
     targets: set[str],
@@ -248,6 +288,12 @@ def _load_local_assets(
                     f"{relative}"
                 )
             harnesses = _default_asset_harnesses(kind, allowed_harnesses)
+            if kind == "skill":
+                harnesses = tuple(
+                    harness
+                    for harness in harnesses
+                    if name not in local_skill_excludes.get(harness, frozenset())
+                )
             if not harnesses:
                 raise SyncError(f"{asset_id} に適用可能な harness がありません")
             assets.append(
@@ -290,7 +336,12 @@ def load_config(root: Path) -> Config:
     apply = data.get("apply", {})
     if not isinstance(apply, dict):
         raise SyncError("[apply] はテーブルである必要があります")
-    unknown_apply = set(apply) - {"default_kinds", "default_harnesses", "allowed_harnesses"}
+    unknown_apply = set(apply) - {
+        "default_kinds",
+        "default_harnesses",
+        "allowed_harnesses",
+        "local_skill_excludes",
+    }
     if unknown_apply:
         raise SyncError(f"[apply] に未知のキーがあります: {', '.join(sorted(unknown_apply))}")
     allowed_harnesses = _string_list(
@@ -305,6 +356,11 @@ def load_config(root: Path) -> Config:
         apply.get("default_harnesses", ["cursor"]),
         "apply.default_harnesses",
         allowed_harnesses,
+    )
+    local_skill_excludes = _parse_local_skill_excludes(
+        apply.get("local_skill_excludes"),
+        root=root,
+        allowed_harnesses=allowed_harnesses,
     )
 
     local = _read_toml(root / "apply.local.toml", optional=True)
@@ -398,6 +454,7 @@ def load_config(root: Path) -> Config:
             root,
             local_data,
             allowed_harnesses,
+            local_skill_excludes,
             asset_ids=asset_ids,
             targets=targets,
         )
