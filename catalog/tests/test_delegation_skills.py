@@ -53,6 +53,14 @@ class DelegationSkillTests(unittest.TestCase):
             for token in forbidden:
                 self.assertNotIn(token, text, f"{name}: {token}")
 
+    def test_codex_exec_only_flags_are_scoped(self) -> None:
+        text = (ROOT / "skills" / "codex" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+
+        self.assertIn("The following controls are `codex exec` only", text)
+        self.assertIn("`codex review` does not accept them", text)
+
     def test_obsolete_package_directories_are_absent(self) -> None:
         self.assertFalse((ROOT / "skills" / "delegate-pi").exists())
         self.assertFalse((ROOT / "skills" / "delegate-codex").exists())

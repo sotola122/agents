@@ -75,7 +75,7 @@ Use `-` to read task text from stdin when shell quoting or size makes an argumen
 terminal(command="codex exec --ephemeral --sandbox read-only -C /project - < /absolute/task.txt")
 ```
 
-Useful output controls:
+The following controls are `codex exec` only; `codex review` does not accept them in the installed CLI:
 
 - `--json` — JSONL event output
 - `-o <file>` / `--output-last-message <file>` — save only the final message
