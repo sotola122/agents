@@ -118,6 +118,7 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertEqual(asset["kind"], "skill")
         self.assertEqual(asset["path"], ".")
         self.assertEqual(asset["target"], "skills/unslop")
+        self.assertEqual(asset["excludes"], ["plans", "docs", ".github"])
         self.assertIs(enabled["theclaymethod/unslop"], True)
 
 

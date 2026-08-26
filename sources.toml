@@ -310,3 +310,4 @@ source = "unslop"
 kind = "skill"
 path = "."
 target = "skills/unslop"
+excludes = ["plans", "docs", ".github"]

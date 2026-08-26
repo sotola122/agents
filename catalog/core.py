@@ -77,6 +77,7 @@ class Asset:
     path: str
     target: str
     harnesses: tuple[str, ...]
+    excludes: tuple[str, ...] = ()
 
     @property
     def is_local(self) -> bool:
@@ -403,10 +404,15 @@ def load_config(root: Path) -> Config:
     for raw in raw_assets:
         if not isinstance(raw, dict):
             raise SyncError("[[assets]] の要素が不正です")
-        allowed_keys = {"id", "source", "kind", "path", "target", "harnesses"}
+        allowed_keys = {"id", "source", "kind", "path", "target", "harnesses", "excludes"}
         required = {"id", "kind", "path"}
         if not required <= set(raw) or set(raw) - allowed_keys:
             raise SyncError(f"asset の必須/許可キーが不正です: {raw.get('id', '<unknown>')}")
+        excludes = (
+            tuple(_safe_rel(item, f"{raw.get('id', '<unknown>')}.excludes") for item in raw["excludes"])
+            if "excludes" in raw
+            else ()
+        )
         asset_id = _safe_id(raw["id"], "asset.id")
         if asset_id in asset_ids:
             raise SyncError(f"asset.id が重複しています: {asset_id}")
@@ -442,7 +448,9 @@ def load_config(root: Path) -> Config:
                 f"{asset_id} では未対応の kind×harness です: "
                 f"{kind}×{','.join(sorted(unsupported))}"
             )
-        assets.append(Asset(asset_id, source_id, kind, source_path, target, harnesses))
+        assets.append(
+            Asset(asset_id, source_id, kind, source_path, target, harnesses, excludes)
+        )
         asset_ids.add(asset_id)
         targets.add(target)
 
@@ -808,6 +816,11 @@ def _export_asset(repo: Path, source: Source, asset: Asset, destination: Path) -
             raise SyncError(
                 f"upstream に予約名 {EXPORT_META_REL} があります: {asset.id}: {tracked_path}"
             )
+        if any(
+            relative == excluded or relative.startswith(excluded + "/")
+            for excluded in asset.excludes
+        ):
+            continue
         files.append((tracked_path, relative, _mode_from_git(mode)))
     if not files:
         raise SyncError(f"tracked file がありません: {asset.id}: {asset.path}")
