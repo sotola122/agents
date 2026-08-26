@@ -333,3 +333,12 @@ export_hash = "2e29cf3f49a1091491085cf53dbae46a66f0436f16862d5be91d6e4ef674e830"
 target = "skills/japanese-tech-writing"
 cache = ".cache/sources/japanese-tech-writing/c7189cdc9c2520be50418209834145bdf3a46e97/japanese-tech-writing"
 source_is_file = true
+
+[[assets]]
+id = "herdrdev/herdr"
+source = "herdr"
+rev = "9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c"
+export_hash = "76093f7d4cd9827f704d247f06873d2428ee166b71f4ad22c7c76bf752c9b5b5"
+target = "skills/herdr"
+cache = ".cache/sources/herdr/9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c/herdr"
+source_is_file = false

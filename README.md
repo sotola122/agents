@@ -16,6 +16,9 @@ agent、AGENTS.md、skillsを一か所で管理し、Cursor や OpenCode など�
 Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/cursor`）を管理する。
 各 harness skill は単一の `SKILL.md` で CLI の起動、権限、workspace、入出力、検証だけを扱い、task prompt、出力 schema、review lens は同梱しない。
 
+Herdrの操作skillは公式リポジトリのv0.8.2 tagをcommit `9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c`で固定して取り込みます。
+このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
+
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
 配布先は次のとおりです。

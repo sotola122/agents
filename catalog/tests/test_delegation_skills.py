@@ -80,6 +80,26 @@ class DelegationSkillTests(unittest.TestCase):
 
         self.assertEqual(apply["local_skill_excludes"], {"hermes": ["codex"]})
 
+    def test_official_herdr_skill_is_pinned_and_enabled(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            catalog = tomllib.load(stream)
+        with (ROOT / "assets.local.toml.example").open("rb") as stream:
+            enabled = tomllib.load(stream)["external"]
+
+        source = next(item for item in catalog["sources"] if item["id"] == "herdr")
+        self.assertEqual(source["url"], "https://github.com/herdrdev/herdr.git")
+        self.assertEqual(source["rev"], "9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c")
+        self.assertEqual(source["license"], "Apache-2.0")
+
+        asset = next(
+            item for item in catalog["assets"] if item["id"] == "herdrdev/herdr"
+        )
+        self.assertEqual(asset["source"], "herdr")
+        self.assertEqual(asset["kind"], "skill")
+        self.assertEqual(asset["path"], "skills/herdr")
+        self.assertEqual(asset["target"], "skills/herdr")
+        self.assertIs(enabled["herdrdev/herdr"], True)
+
 
 if __name__ == "__main__":
     unittest.main()
