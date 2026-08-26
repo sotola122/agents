@@ -765,10 +765,15 @@ def _exclusive_sync_lock(root: Path) -> Iterator[None]:
 
 
 def _export_asset(repo: Path, source: Source, asset: Asset, destination: Path) -> bool:
-    object_type = _git(["cat-file", "-t", f"{source.rev}:{asset.path}"], repo).strip()
+    # "." (repo root tree) は git の rev:path 構文で "rev:." と解決できないため
+    # 空文字に置き換えて root tree を参照する。
+    normalized_path = "" if PurePosixPath(asset.path).as_posix() == "." else asset.path
+    object_type = _git(["cat-file", "-t", f"{source.rev}:{normalized_path}"], repo).strip()
     if object_type not in ("tree", "blob"):
         raise SyncError(f"asset path は file または directory ではありません: {asset.id}")
-    source_is_file = object_type == "blob"
+    # "." (repo root tree) は path が空文字として index に現れるため特別扱いする。
+    root_export = normalized_path == ""
+    source_is_file = object_type == "blob" and not root_export
     raw = _git(
         ["ls-files", "-z", "--stage", "--", asset.path], repo, text=False
     )
@@ -792,6 +797,8 @@ def _export_asset(repo: Path, source: Source, asset: Asset, destination: Path) -
             if tracked_path != asset.path:
                 continue
             relative = PurePosixPath(tracked_path).name
+        elif root_export:
+            relative = tracked_path
         else:
             if not tracked_path.startswith(prefix):
                 continue

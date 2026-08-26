@@ -19,6 +19,10 @@ Anago はレビュー／ワークフロー skill を自リポジトリで管理�
 Herdrの操作skillは公式リポジトリのv0.8.2 tagをcommit `9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c`で固定して取り込みます。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
+unslopのskillは公式リポジトリ全体をcommit `d81f5196167ded24f46fced04958c0c12d681798`で固定して取り込みます。
+SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
+catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
+
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
 配布先は次のとおりです。

@@ -100,6 +100,26 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertEqual(asset["target"], "skills/herdr")
         self.assertIs(enabled["herdrdev/herdr"], True)
 
+    def test_unslop_skill_is_pinned_as_repo_root_export(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            catalog = tomllib.load(stream)
+        with (ROOT / "assets.local.toml.example").open("rb") as stream:
+            enabled = tomllib.load(stream)["external"]
+
+        source = next(item for item in catalog["sources"] if item["id"] == "unslop")
+        self.assertEqual(source["url"], "https://github.com/theclaymethod/unslop.git")
+        self.assertEqual(source["rev"], "d81f5196167ded24f46fced04958c0c12d681798")
+        self.assertEqual(source["license"], "MIT")
+
+        asset = next(
+            item for item in catalog["assets"] if item["id"] == "theclaymethod/unslop"
+        )
+        self.assertEqual(asset["source"], "unslop")
+        self.assertEqual(asset["kind"], "skill")
+        self.assertEqual(asset["path"], ".")
+        self.assertEqual(asset["target"], "skills/unslop")
+        self.assertIs(enabled["theclaymethod/unslop"], True)
+
 
 if __name__ == "__main__":
     unittest.main()

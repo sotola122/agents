@@ -291,9 +291,22 @@ kind = "skill"
 path = "SKILL.md"
 target = "skills/japanese-tech-writing"
 
+[[sources]]
+id = "unslop"
+url = "https://github.com/theclaymethod/unslop.git"
+rev = "d81f5196167ded24f46fced04958c0c12d681798"
+license = "MIT"
+
 [[assets]]
 id = "herdrdev/herdr"
 source = "herdr"
 kind = "skill"
 path = "skills/herdr"
 target = "skills/herdr"
+
+[[assets]]
+id = "theclaymethod/unslop"
+source = "unslop"
+kind = "skill"
+path = "."
+target = "skills/unslop"
