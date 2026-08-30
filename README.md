@@ -32,7 +32,7 @@ catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現�
 - OMP：`~/.omp/`
 - Pi：`~/.pi/agent/`
 - Shared：`~/.agents/skills/`
-- Hermes：`~/.hermes/skills/anago/`
+- Hermes：`${HERMES_HOME}/skills/anago/`（`HERMES_HOME` 未設定時は `~/.hermes/skills/anago/`）
 
 ## 動作環境
 
@@ -249,7 +249,7 @@ cursor = true
 
 ## Hermes の旧 skill 配置を削除する
 
-Hermes harness の skill は `~/.hermes/skills/anago/<name>/` へ配布します。
+Hermes harness の skill は `HERMES_HOME` が設定されている場合は `${HERMES_HOME}/skills/anago/<name>/`、未設定時は `~/.hermes/skills/anago/<name>/` へ配布します。
 旧 `~/.hermes/skills/<name>/` からの migration 機能はありません。
 
 切り替え時は `~/.hermes/.catalog-applied.toml` の `kind = "skill"` entry と実在する directory を照合し、旧 `skills/<name>` に一致する管理対象だけを列挙します。

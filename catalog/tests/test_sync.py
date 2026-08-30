@@ -102,15 +102,20 @@ class SyncCliTests(unittest.TestCase):
         )
 
     def _run(self, fn):
-        previous = os.environ.get("CATALOG_HOME")
+        previous_catalog_home = os.environ.get("CATALOG_HOME")
+        previous_hermes_home = os.environ.pop("HERMES_HOME", None)
         os.environ["CATALOG_HOME"] = str(self.home)
         try:
             return fn()
         finally:
-            if previous is None:
+            if previous_catalog_home is None:
                 os.environ.pop("CATALOG_HOME", None)
             else:
-                os.environ["CATALOG_HOME"] = previous
+                os.environ["CATALOG_HOME"] = previous_catalog_home
+            if previous_hermes_home is None:
+                os.environ.pop("HERMES_HOME", None)
+            else:
+                os.environ["HERMES_HOME"] = previous_hermes_home
 
     def test_sync_caches_only_and_apply_targets_global(self) -> None:
         def exercise() -> None:
@@ -190,6 +195,24 @@ class SyncCliTests(unittest.TestCase):
 
         self.assertEqual(core._target_for(asset, "hermes"), "skills/anago/demo")
         self.assertEqual(core._target_for(asset, "cursor"), "skills/demo")
+
+    def test_hermes_harness_root_honors_hermes_home(self) -> None:
+        hermes_home = self.home / "active-hermes"
+        with mock.patch.dict(
+            os.environ,
+            {"CATALOG_HOME": str(self.home), "HERMES_HOME": str(hermes_home)},
+        ):
+            self.assertEqual(core._harness_root("hermes"), hermes_home.resolve())
+            self.assertEqual(core._harness_root("cursor"), (self.home / ".cursor").resolve())
+
+    def test_run_removes_hermes_home_created_by_exercise(self) -> None:
+        previous = os.environ.pop("HERMES_HOME", None)
+        try:
+            self._run(lambda: os.environ.__setitem__("HERMES_HOME", "leaked"))
+            self.assertNotIn("HERMES_HOME", os.environ)
+        finally:
+            if previous is not None:
+                os.environ["HERMES_HOME"] = previous
 
     def test_hermes_skill_apply_uses_anago_namespace(self) -> None:
         def exercise() -> None:

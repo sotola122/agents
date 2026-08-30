@@ -1489,6 +1489,9 @@ def _harness_root(harness: str) -> Path:
     if harness == "shared":
         return home / ".agents"
     if harness == "hermes":
+        override = os.environ.get("HERMES_HOME")
+        if override:
+            return Path(override).expanduser().resolve()
         return home / ".hermes"
     raise SyncError(f"未知の harness です: {harness}")
 
