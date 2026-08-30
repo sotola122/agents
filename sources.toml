@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "03ce02e1a7c04426a2881962da661c46e389e8bf"
+rev = "2290257acb2085ce6842ba5c7e3ca50c3ba64f02"
 license = "Apache-2.0"
 
 [[assets]]
