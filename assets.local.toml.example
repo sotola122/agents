@@ -55,6 +55,7 @@
 "dietrichgebert/ponytail-debt" = false
 "dietrichgebert/ponytail-gain" = false
 "dietrichgebert/ponytail-help" = false
+"coji/natural-japanese" = true
 
 [skills]
 codegraph = false

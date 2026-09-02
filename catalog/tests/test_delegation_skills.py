@@ -155,6 +155,32 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertIs(enabled["dietrichgebert/ponytail-gain"], False)
         self.assertIs(enabled["dietrichgebert/ponytail-help"], False)
 
+    def test_natural_japanese_skill_is_pinned_and_enabled(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            catalog = tomllib.load(stream)
+        with (ROOT / "assets.local.toml.example").open("rb") as stream:
+            enabled = tomllib.load(stream)["external"]
+
+        source = next(
+            item for item in catalog["sources"] if item["id"] == "natural-japanese"
+        )
+        self.assertEqual(
+            source["url"], "https://github.com/coji/natural-japanese.git"
+        )
+        self.assertEqual(
+            source["rev"], "0f1cc1c5a4e2aa7590598c88a15c213a60d9545a"
+        )
+        self.assertEqual(source["license"], "MIT")
+
+        asset = next(
+            item for item in catalog["assets"] if item["id"] == "coji/natural-japanese"
+        )
+        self.assertEqual(asset["source"], "natural-japanese")
+        self.assertEqual(asset["kind"], "skill")
+        self.assertEqual(asset["path"], "skills/natural-japanese")
+        self.assertEqual(asset["target"], "skills/natural-japanese")
+        self.assertIs(enabled["coji/natural-japanese"], True)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -26,6 +26,9 @@ catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現�
 ponytailのskillは公式リポジトリをcommit `2ed6c52c9d7e5e56942508591085fd45dea277d3`で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 
+natural-japaneseのskillは公式リポジトリをcommit `0f1cc1c5a4e2aa7590598c88a15c213a60d9545a`で固定して取り込みます。
+スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
+
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
 配布先は次のとおりです。

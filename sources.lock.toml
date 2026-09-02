@@ -405,3 +405,12 @@ export_hash = "635897ced24bc089c70cd190db8f8aaa19ac274636fbe462f286e41e024dd41d"
 target = "skills/ponytail-help"
 cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail-help"
 source_is_file = false
+
+[[assets]]
+id = "coji/natural-japanese"
+source = "natural-japanese"
+rev = "0f1cc1c5a4e2aa7590598c88a15c213a60d9545a"
+export_hash = "1817d141f2e7bb46b271f03c9099fb17086dabf67367b4a83a0acefd7a7ea84a"
+target = "skills/natural-japanese"
+cache = ".cache/sources/natural-japanese/0f1cc1c5a4e2aa7590598c88a15c213a60d9545a/natural-japanese"
+source_is_file = false
