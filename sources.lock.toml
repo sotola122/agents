@@ -351,3 +351,57 @@ export_hash = "e180e65407fa4b7a6782a2573559a8420b0cd6662d47a1f0a7f8cbe7278d1560"
 target = "skills/unslop"
 cache = ".cache/sources/unslop/d81f5196167ded24f46fced04958c0c12d681798/unslop"
 source_is_file = false
+
+[[assets]]
+id = "dietrichgebert/ponytail"
+source = "ponytail"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+export_hash = "04f6da2bb60a715989e899021a6c6ea409d3ac0d3eaabb2579d8985acf9c4b76"
+target = "skills/ponytail"
+cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail"
+source_is_file = false
+
+[[assets]]
+id = "dietrichgebert/ponytail-review"
+source = "ponytail"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+export_hash = "0ac384c3e539f4423dfe16c81cfde051e1641f224656e49fe8915fdd9fc3e581"
+target = "skills/ponytail-review"
+cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail-review"
+source_is_file = false
+
+[[assets]]
+id = "dietrichgebert/ponytail-audit"
+source = "ponytail"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+export_hash = "46c7a7a63b1c5a7b6c3b0a77d6720adb21871c00c87a96ad6c99b254aba1e1a9"
+target = "skills/ponytail-audit"
+cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail-audit"
+source_is_file = false
+
+[[assets]]
+id = "dietrichgebert/ponytail-debt"
+source = "ponytail"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+export_hash = "e660004ce072e4e9a06db771914065ac35e452da9c7768c840f46bfca9190855"
+target = "skills/ponytail-debt"
+cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail-debt"
+source_is_file = false
+
+[[assets]]
+id = "dietrichgebert/ponytail-gain"
+source = "ponytail"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+export_hash = "7057236dbcde2e6ab43bca96391953732eb3e0e455fbcc58d289f7e982b11ab4"
+target = "skills/ponytail-gain"
+cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail-gain"
+source_is_file = false
+
+[[assets]]
+id = "dietrichgebert/ponytail-help"
+source = "ponytail"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+export_hash = "635897ced24bc089c70cd190db8f8aaa19ac274636fbe462f286e41e024dd41d"
+target = "skills/ponytail-help"
+cache = ".cache/sources/ponytail/2ed6c52c9d7e5e56942508591085fd45dea277d3/ponytail-help"
+source_is_file = false

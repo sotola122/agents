@@ -311,3 +311,51 @@ kind = "skill"
 path = "."
 target = "skills/unslop"
 excludes = ["plans", "docs", ".github"]
+
+[[sources]]
+id = "ponytail"
+url = "https://github.com/DietrichGebert/ponytail.git"
+rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+license = "MIT"
+
+[[assets]]
+id = "dietrichgebert/ponytail"
+source = "ponytail"
+kind = "skill"
+path = "skills/ponytail"
+target = "skills/ponytail"
+
+[[assets]]
+id = "dietrichgebert/ponytail-review"
+source = "ponytail"
+kind = "skill"
+path = "skills/ponytail-review"
+target = "skills/ponytail-review"
+
+[[assets]]
+id = "dietrichgebert/ponytail-audit"
+source = "ponytail"
+kind = "skill"
+path = "skills/ponytail-audit"
+target = "skills/ponytail-audit"
+
+[[assets]]
+id = "dietrichgebert/ponytail-debt"
+source = "ponytail"
+kind = "skill"
+path = "skills/ponytail-debt"
+target = "skills/ponytail-debt"
+
+[[assets]]
+id = "dietrichgebert/ponytail-gain"
+source = "ponytail"
+kind = "skill"
+path = "skills/ponytail-gain"
+target = "skills/ponytail-gain"
+
+[[assets]]
+id = "dietrichgebert/ponytail-help"
+source = "ponytail"
+kind = "skill"
+path = "skills/ponytail-help"
+target = "skills/ponytail-help"

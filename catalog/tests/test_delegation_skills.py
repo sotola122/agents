@@ -121,6 +121,40 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertEqual(asset["excludes"], ["plans", "docs", ".github"])
         self.assertIs(enabled["theclaymethod/unslop"], True)
 
+    def test_ponytail_skills_are_pinned_and_selectively_enabled(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            catalog = tomllib.load(stream)
+        with (ROOT / "assets.local.toml.example").open("rb") as stream:
+            enabled = tomllib.load(stream)["external"]
+
+        source = next(item for item in catalog["sources"] if item["id"] == "ponytail")
+        self.assertEqual(source["url"], "https://github.com/DietrichGebert/ponytail.git")
+        self.assertEqual(source["rev"], "2ed6c52c9d7e5e56942508591085fd45dea277d3")
+        self.assertEqual(source["license"], "MIT")
+
+        expected = (
+            "ponytail",
+            "ponytail-review",
+            "ponytail-audit",
+            "ponytail-debt",
+            "ponytail-gain",
+            "ponytail-help",
+        )
+        for name in expected:
+            asset_id = f"dietrichgebert/{name}"
+            asset = next(item for item in catalog["assets"] if item["id"] == asset_id)
+            self.assertEqual(asset["source"], "ponytail")
+            self.assertEqual(asset["kind"], "skill")
+            self.assertEqual(asset["path"], f"skills/{name}")
+            self.assertEqual(asset["target"], f"skills/{name}")
+
+        self.assertIs(enabled["dietrichgebert/ponytail"], True)
+        self.assertIs(enabled["dietrichgebert/ponytail-review"], True)
+        self.assertIs(enabled["dietrichgebert/ponytail-audit"], False)
+        self.assertIs(enabled["dietrichgebert/ponytail-debt"], False)
+        self.assertIs(enabled["dietrichgebert/ponytail-gain"], False)
+        self.assertIs(enabled["dietrichgebert/ponytail-help"], False)
+
 
 if __name__ == "__main__":
     unittest.main()

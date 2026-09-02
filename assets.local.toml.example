@@ -49,6 +49,12 @@
 "theclaymethod/unslop" = true
 "k16shikano/cognitive-rhythm-writing" = true
 "k16shikano/japanese-tech-writing" = true
+"dietrichgebert/ponytail" = true
+"dietrichgebert/ponytail-review" = true
+"dietrichgebert/ponytail-audit" = false
+"dietrichgebert/ponytail-debt" = false
+"dietrichgebert/ponytail-gain" = false
+"dietrichgebert/ponytail-help" = false
 
 [skills]
 codegraph = false

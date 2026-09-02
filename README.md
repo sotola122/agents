@@ -23,6 +23,9 @@ unslopのskillは公式リポジトリ全体をcommit `d81f5196167ded24f46fced04
 SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
 catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
 
+ponytailのskillは公式リポジトリをcommit `2ed6c52c9d7e5e56942508591085fd45dea277d3`で固定して取り込みます。
+6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
+
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
 配布先は次のとおりです。
