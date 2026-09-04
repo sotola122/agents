@@ -11,7 +11,7 @@ hermes = ["codex"]
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"
-rev = "6654f6b60cd9d5be8b54c6fafe44346dabeb3b76"
+rev = "3cca18b368ae95cdbdebbff572ccafa662551015"
 license = "MIT"
 
 [[sources]]
@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "73825652244edaf11d3fddc89b5b00266edcae0d"
+rev = "8162e26509f7b91eb8dcfd47387d43af3f348bbb"
 license = "Apache-2.0"
 
 [[assets]]
@@ -315,7 +315,7 @@ excludes = ["plans", "docs", ".github"]
 [[sources]]
 id = "ponytail"
 url = "https://github.com/DietrichGebert/ponytail.git"
-rev = "2ed6c52c9d7e5e56942508591085fd45dea277d3"
+rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
 license = "MIT"
 
 [[assets]]
@@ -363,7 +363,7 @@ target = "skills/ponytail-help"
 [[sources]]
 id = "natural-japanese"
 url = "https://github.com/coji/natural-japanese.git"
-rev = "0f1cc1c5a4e2aa7590598c88a15c213a60d9545a"
+rev = "9a78a42964096da509b8f3e011f0085a5f080151"
 license = "MIT"
 
 [[assets]]
