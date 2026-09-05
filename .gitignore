@@ -2,6 +2,7 @@
 /.cache/
 /apply.local.toml
 /assets.local.toml
+/.hermes/
 
 # Python
 __pycache__/
