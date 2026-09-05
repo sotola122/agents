@@ -312,8 +312,11 @@ def _external_apply_enabled(
     table = data.get("external")
     if table is None:
         return None
-    enables = _parse_enable_table(table, section="external", known_ids=external_ids)
-    return frozenset(asset_id for asset_id, enabled in enables.items() if enabled)
+    enables = _parse_enable_table(table, section="external")
+    known = set(external_ids)
+    for asset_id in sorted(set(enables) - known):
+        print(f"ignored setting: {LOCAL_ASSETS_REL} [external.{asset_id}] (asset not in sources.toml)")
+    return frozenset(asset_id for asset_id, enabled in enables.items() if enabled and asset_id in known)
 
 
 def apply_enabled(config: Config, asset: Asset) -> bool:
@@ -1314,11 +1317,71 @@ def sync_assets(config: Config, requested: frozenset[str] | None) -> int:
         return _sync_assets_locked(config, requested)
 
 
+def _complete_local_settings(config: Config) -> tuple[str, list[str]]:
+    path = config.root / LOCAL_ASSETS_REL
+    original = path.read_text(encoding="utf-8") if path.exists() else ""
+    data = tomllib.loads(original)
+    candidates = {
+        "external": {asset.id: config.external_apply_enabled is None
+                     for asset in config.assets if not asset.is_local},
+        "skills": {path.name: False for path in sorted((config.root / "skills").glob("*"))
+                   if path.is_dir() and (path / "SKILL.md").is_file()
+                   and not any(_paths_overlap(f"skills/{path.name}", asset.target)
+                               for asset in config.assets if not asset.is_local)},
+    }
+    added: list[str] = []
+    lines = original.splitlines(keepends=True)
+    for section, values in candidates.items():
+        missing = {key: value for key, value in values.items() if key not in data.get(section, {})}
+        if not missing:
+            continue
+        addition = "".join(f"{_toml_quote(key)} = {str(value).lower()}\n" for key, value in missing.items())
+        for index, line in enumerate(lines):
+            if line.lstrip().startswith("["):
+                try:
+                    header = tomllib.loads(line)
+                except tomllib.TOMLDecodeError:
+                    continue
+                if header == {section: {}}:
+                    lines[index] = line.rstrip("\r\n") + "\n" + addition
+                    break
+        else:
+            if section in data:
+                for index, line in enumerate(lines):
+                    match = re.match(rf'\s*(?:{section}|"{section}"|\'{section}\')\s*=\s*\{{', line)
+                    if match:
+                        closing = line.find("}", match.end())
+                        while closing != -1:
+                            try:
+                                tomllib.loads(line[:closing + 1])
+                                break
+                            except tomllib.TOMLDecodeError:
+                                closing = line.find("}", closing + 1)
+                        inline = ", ".join(f"{_toml_quote(key)} = {str(value).lower()}"
+                                           for key, value in missing.items())
+                        lines[index] = line[:closing].rstrip() + ", " + inline + line[closing:]
+                        break
+                else:
+                    addition = "".join(f"{section}.{_toml_quote(key)} = {str(value).lower()}\n"
+                                       for key, value in missing.items())
+                    lines.insert(0, addition)
+            else:
+                lines.append(f"\n[{section}]\n{addition}")
+        added.extend(f"{section}.{key}" for key in missing)
+    rewritten = "".join(lines)
+    try:
+        tomllib.loads(rewritten)
+    except tomllib.TOMLDecodeError as exc:
+        raise SyncError(f"{LOCAL_ASSETS_REL} の設定追記には [external] / [skills] テーブル形式を使用してください") from exc
+    return rewritten, added
+
+
 def _sync_assets_locked(config: Config, requested: frozenset[str] | None) -> int:
     old_lock = load_lock(config)
     selected = _select_sync_assets(config, requested, old_lock)
     if requested is not None and not selected:
         return 0
+    local_settings, added_settings = _complete_local_settings(config)
 
     # Full sync rebuilds the lock from scratch; partial sync updates in place.
     entries: dict[str, LockAsset] = {} if requested is None else dict(old_lock)
@@ -1412,10 +1475,16 @@ def _sync_assets_locked(config: Config, requested: frozenset[str] | None) -> int
             lock_backup = _unique_file(config.root, "sources.lock.toml.bak.")
             shutil.copy2(lock_path, lock_backup)
         write_lock(config, final_entries)
+        if added_settings:
+            _write_text_atomic(config.root, LOCAL_ASSETS_REL, local_settings)
         committed = True
+        for setting in added_settings:
+            print(f"added setting: {LOCAL_ASSETS_REL} [{setting}]")
 
         try:
             _finalize_sync_quarantine(quarantine_root)
+            for move in quarantine_moves:
+                print(f"removed: {_display_path(move.original)}")
             quarantine_root = None
             for _final, backup in promoted:
                 if backup is not None and backup.exists():
@@ -1639,6 +1708,7 @@ def _apply_tree(
     label: str,
 ) -> None:
     destination = _assert_safe_destination(base_root, managed_root)
+    removed = sorted(set(_actual_tree(base_root, managed_root)) - set(expected))
     if destination.exists():
         if destination.is_dir():
             shutil.rmtree(destination)
@@ -1650,6 +1720,8 @@ def _apply_tree(
         output.write_bytes(content)
         _set_file_mode(output, mode)
     print(f"applied {label} -> {_display_path(destination)}")
+    for relative in removed:
+        print(f"removed {label} -> {_display_path(base_root / relative)}")
 
 
 def _actual_tree(root: Path, managed_root: str) -> FileTree:

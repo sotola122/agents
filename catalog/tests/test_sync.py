@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import io
 import os
 from pathlib import Path
 import subprocess
@@ -116,6 +117,82 @@ class SyncCliTests(unittest.TestCase):
                 os.environ.pop("HERMES_HOME", None)
             else:
                 os.environ["HERMES_HOME"] = previous_hermes_home
+
+    def test_sync_completes_local_settings_without_changing_existing_values(self) -> None:
+        path = self.root / core.LOCAL_ASSETS_REL
+        path.write_text('# keep comment\n[external]\n"fixture/demo" = false # disabled\n', encoding="utf-8")
+        skill = self.root / "skills" / "new-skill"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("# New", encoding="utf-8")
+        core.sync_assets(core.load_config(self.root), None)
+        data = core._read_assets_local(self.root)
+        self.assertEqual(data["external"], {
+            "fixture/demo": False, "fixture/standalone": False, "fixture/rule": False,
+        })
+        self.assertEqual(data["skills"], {"new-skill": False})
+        first = path.read_bytes()
+        self.assertIn(b'# disabled', first)
+        self.assertIn(b'# keep comment', first)
+        core.sync_assets(core.load_config(self.root), None)
+        self.assertEqual(path.read_bytes(), first)
+
+    def test_sync_creates_local_settings_preserving_external_defaults(self) -> None:
+        core.sync_assets(core.load_config(self.root), None)
+        self.assertTrue(all(core._read_assets_local(self.root)["external"].values()))
+
+    def test_local_settings_support_quoted_inline_and_dotted_tables(self) -> None:
+        path = self.root / core.LOCAL_ASSETS_REL
+        for original in (
+            '["external"] # keep\n"fixture/demo" = true\n',
+            'external = {"fixture/demo" = true} # keep }\n',
+            'external."fixture/demo" = true # keep\n',
+        ):
+            with self.subTest(original=original):
+                path.write_text(original, encoding="utf-8")
+                rewritten, added = core._complete_local_settings(core.load_config(self.root))
+                self.assertEqual(len(added), 2)
+                self.assertIn("# keep", rewritten)
+                path.write_text(rewritten, encoding="utf-8")
+                self.assertEqual(core._read_assets_local(self.root)["external"], {
+                    "fixture/demo": True, "fixture/standalone": False, "fixture/rule": False,
+                })
+
+    def test_sync_logs_completed_cache_deletion(self) -> None:
+        config = core.load_config(self.root)
+        core.sync_assets(config, None)
+        obsolete = self.root / ".cache" / "sources" / "obsolete.txt"
+        obsolete.write_text("old", encoding="utf-8")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            core.sync_assets(config, None)
+        self.assertFalse(obsolete.exists())
+        self.assertIn(f"removed: {core._display_path(obsolete)}", output.getvalue())
+
+    def test_failed_sync_does_not_complete_local_settings(self) -> None:
+        with mock.patch.object(core, "write_lock", side_effect=core.SyncError("failed")):
+            with self.assertRaises(core.SyncError):
+                core.sync_assets(core.load_config(self.root), None)
+        self.assertFalse((self.root / core.LOCAL_ASSETS_REL).exists())
+
+    def test_apply_logs_only_files_absent_from_updated_skill(self) -> None:
+        target = self.home / "skills" / "demo"
+        target.mkdir(parents=True)
+        (target / "SKILL.md").write_text("old", encoding="utf-8")
+        (target / "obsolete.md").write_text("old", encoding="utf-8")
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            core._apply_tree(self.home, "skills/demo", {
+                "skills/demo/SKILL.md": (b"new", core.DEFAULT_FILE_MODE),
+            }, label="fixture/demo")
+        removals = [line for line in output.getvalue().splitlines() if line.startswith("removed ")]
+        self.assertEqual(len(removals), 1)
+        self.assertIn("obsolete.md", removals[0])
+        self.assertFalse((target / "obsolete.md").exists())
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            core._apply_tree(self.home, "skills/demo", {}, label="fixture/demo")
+        self.assertIn("removed fixture/demo", output.getvalue())
+        self.assertIn("SKILL.md", output.getvalue())
 
     def test_sync_caches_only_and_apply_targets_global(self) -> None:
         def exercise() -> None:
@@ -512,7 +589,7 @@ class SyncCliTests(unittest.TestCase):
 
         self._run(exercise)
 
-    def test_external_apply_unknown_id_rejected(self) -> None:
+    def test_external_apply_unknown_id_logged_and_ignored(self) -> None:
         (self.root / "assets.local.toml").write_text(
             textwrap.dedent(
                 """
@@ -522,8 +599,12 @@ class SyncCliTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        with self.assertRaisesRegex(core.SyncError, "未知の asset.id"):
-            core.load_config(self.root)
+        output = io.StringIO()
+        with contextlib.redirect_stdout(output):
+            config = core.load_config(self.root)
+        self.assertEqual(config.external_apply_enabled, frozenset())
+        self.assertIn("ignored setting:", output.getvalue())
+        self.assertIn("fixture/nope", output.getvalue())
 
     def test_sync_cleans_stale_cache_entries(self) -> None:
         def exercise() -> None:

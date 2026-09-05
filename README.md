@@ -151,6 +151,10 @@ cursor = true
 - `[skills]` / `[agents]` / `[context]` … リポジトリ直下の local 資産（`true` のものだけ適用）
 - `sync` は `sources.toml` の外部 pin をすべて同期する（enable の影響なし）
 
+`sync`（`update` に伴う同期を含む）が成功すると、`assets.local.toml` に未登録の外部 asset と `skills/<name>/SKILL.md` を持つ local skill の設定を追記します。ファイルがなければ作成し、既存の値とコメントは保持します。
+追記する値は、既存の `[external]` がある場合は `false`、省略されていた場合は従来の適用範囲を維持するため `true`、local skill は `false` です。`--asset` 指定時も設定の補完は一覧全体が対象です。
+`[external]` に現在の `sources.toml` にない ID が残っている場合、設定を保持したまま `ignored setting` と表示し、適用対象から除外します。
+
 `sources.toml` への local asset 登録は不要です（登録するとエラーになります）。
 
 ## コマンド一覧
@@ -172,6 +176,8 @@ cursor = true
 先頭の `summary: +N  ~N  -N` はファイル単位の件数です。
 以前 apply 済みで今回の対象外になった asset は `[… → harness remove]` と表示され、`-` 行が削除予定です。
 ターミナル表示時は `+` 緑 / `~` 黄 / `-` 赤で色分けします（`NO_COLOR` 設定時やパイプ／`--output` では無色）。
+
+`apply` は更新後に残らないファイルを `removed <asset> -> <path>` と記録します。`sync` / `update` で不要なキャッシュなどを削除した場合も、削除完了後に `removed: <path>` を表示します。
 
 `validate`、`diff`、`apply`、`status` はネットワークに接続しません。
 
