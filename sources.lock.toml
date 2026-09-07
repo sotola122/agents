@@ -337,73 +337,73 @@ source_is_file = true
 [[assets]]
 id = "herdrdev/herdr"
 source = "herdr"
-rev = "ec05328a4413e38ebdcb84365938345e9cf47431"
-export_hash = "76093f7d4cd9827f704d247f06873d2428ee166b71f4ad22c7c76bf752c9b5b5"
+rev = "792b2baa447a3ed413cc755ea3d76582021c648a"
+export_hash = "060286bf7693df1049f28398bd332fe626e828b83c4fea27935f165e27605c41"
 target = "skills/herdr"
-cache = ".cache/sources/herdr/ec05328a4413e38ebdcb84365938345e9cf47431/herdr"
+cache = ".cache/sources/herdr/792b2baa447a3ed413cc755ea3d76582021c648a/herdr"
 source_is_file = false
 
 [[assets]]
 id = "theclaymethod/unslop"
 source = "unslop"
-rev = "d81f5196167ded24f46fced04958c0c12d681798"
-export_hash = "e180e65407fa4b7a6782a2573559a8420b0cd6662d47a1f0a7f8cbe7278d1560"
+rev = "17ed39c9d0b522f44190ff0c6233867eadee192a"
+export_hash = "31b803c52dc8c92c2d9316d0a1122a27585d0a7c9d8a186d694bb2c868f19158"
 target = "skills/unslop"
-cache = ".cache/sources/unslop/d81f5196167ded24f46fced04958c0c12d681798/unslop"
+cache = ".cache/sources/unslop/17ed39c9d0b522f44190ff0c6233867eadee192a/unslop"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail"
 source = "ponytail"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 export_hash = "04f6da2bb60a715989e899021a6c6ea409d3ac0d3eaabb2579d8985acf9c4b76"
 target = "skills/ponytail"
-cache = ".cache/sources/ponytail/974d940a1c5344210874150b98ff0d2c861fab6a/ponytail"
+cache = ".cache/sources/ponytail/356918eba965ee1eac64bd3a7f0dd02108350de5/ponytail"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-review"
 source = "ponytail"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 export_hash = "0ac384c3e539f4423dfe16c81cfde051e1641f224656e49fe8915fdd9fc3e581"
 target = "skills/ponytail-review"
-cache = ".cache/sources/ponytail/974d940a1c5344210874150b98ff0d2c861fab6a/ponytail-review"
+cache = ".cache/sources/ponytail/356918eba965ee1eac64bd3a7f0dd02108350de5/ponytail-review"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-audit"
 source = "ponytail"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 export_hash = "46c7a7a63b1c5a7b6c3b0a77d6720adb21871c00c87a96ad6c99b254aba1e1a9"
 target = "skills/ponytail-audit"
-cache = ".cache/sources/ponytail/974d940a1c5344210874150b98ff0d2c861fab6a/ponytail-audit"
+cache = ".cache/sources/ponytail/356918eba965ee1eac64bd3a7f0dd02108350de5/ponytail-audit"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-debt"
 source = "ponytail"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 export_hash = "e660004ce072e4e9a06db771914065ac35e452da9c7768c840f46bfca9190855"
 target = "skills/ponytail-debt"
-cache = ".cache/sources/ponytail/974d940a1c5344210874150b98ff0d2c861fab6a/ponytail-debt"
+cache = ".cache/sources/ponytail/356918eba965ee1eac64bd3a7f0dd02108350de5/ponytail-debt"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-gain"
 source = "ponytail"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 export_hash = "7057236dbcde2e6ab43bca96391953732eb3e0e455fbcc58d289f7e982b11ab4"
 target = "skills/ponytail-gain"
-cache = ".cache/sources/ponytail/974d940a1c5344210874150b98ff0d2c861fab6a/ponytail-gain"
+cache = ".cache/sources/ponytail/356918eba965ee1eac64bd3a7f0dd02108350de5/ponytail-gain"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-help"
 source = "ponytail"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 export_hash = "635897ced24bc089c70cd190db8f8aaa19ac274636fbe462f286e41e024dd41d"
 target = "skills/ponytail-help"
-cache = ".cache/sources/ponytail/974d940a1c5344210874150b98ff0d2c861fab6a/ponytail-help"
+cache = ".cache/sources/ponytail/356918eba965ee1eac64bd3a7f0dd02108350de5/ponytail-help"
 source_is_file = false
 
 [[assets]]

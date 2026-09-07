@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "ec05328a4413e38ebdcb84365938345e9cf47431"
+rev = "792b2baa447a3ed413cc755ea3d76582021c648a"
 license = "Apache-2.0"
 
 [[assets]]
@@ -294,7 +294,7 @@ target = "skills/japanese-tech-writing"
 [[sources]]
 id = "unslop"
 url = "https://github.com/theclaymethod/unslop.git"
-rev = "d81f5196167ded24f46fced04958c0c12d681798"
+rev = "17ed39c9d0b522f44190ff0c6233867eadee192a"
 license = "MIT"
 
 [[assets]]
@@ -315,7 +315,7 @@ excludes = ["plans", "docs", ".github"]
 [[sources]]
 id = "ponytail"
 url = "https://github.com/DietrichGebert/ponytail.git"
-rev = "974d940a1c5344210874150b98ff0d2c861fab6a"
+rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
 license = "MIT"
 
 [[assets]]
