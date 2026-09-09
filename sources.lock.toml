@@ -328,19 +328,19 @@ source_is_file = true
 [[assets]]
 id = "k16shikano/japanese-tech-writing"
 source = "japanese-tech-writing"
-rev = "c7189cdc9c2520be50418209834145bdf3a46e97"
-export_hash = "2e29cf3f49a1091491085cf53dbae46a66f0436f16862d5be91d6e4ef674e830"
+rev = "8f2d57610a73efc97d743c9b0b0ecb1002e09fa4"
+export_hash = "d5abc1bf3ab21da922afc26b567b0198d6404b2de89ed86271cdb9e334900c70"
 target = "skills/japanese-tech-writing"
-cache = ".cache/sources/japanese-tech-writing/c7189cdc9c2520be50418209834145bdf3a46e97/japanese-tech-writing"
+cache = ".cache/sources/japanese-tech-writing/8f2d57610a73efc97d743c9b0b0ecb1002e09fa4/japanese-tech-writing"
 source_is_file = true
 
 [[assets]]
 id = "herdrdev/herdr"
 source = "herdr"
-rev = "8be4cf765afddfd9cf3206602ba4dab682a29fa1"
+rev = "120c682008a85dc17d7a13cc619a2fd5d25f3924"
 export_hash = "060286bf7693df1049f28398bd332fe626e828b83c4fea27935f165e27605c41"
 target = "skills/herdr"
-cache = ".cache/sources/herdr/8be4cf765afddfd9cf3206602ba4dab682a29fa1/herdr"
+cache = ".cache/sources/herdr/120c682008a85dc17d7a13cc619a2fd5d25f3924/herdr"
 source_is_file = false
 
 [[assets]]

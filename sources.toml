@@ -23,13 +23,13 @@ license = "Unlicense"
 [[sources]]
 id = "japanese-tech-writing"
 url = "https://gist.github.com/fd287c3133457c4fd8f5601d34aa817d.git"
-rev = "c7189cdc9c2520be50418209834145bdf3a46e97"
+rev = "8f2d57610a73efc97d743c9b0b0ecb1002e09fa4"
 license = "Unlicense"
 
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "8be4cf765afddfd9cf3206602ba4dab682a29fa1"
+rev = "120c682008a85dc17d7a13cc619a2fd5d25f3924"
 license = "Apache-2.0"
 
 [[assets]]
