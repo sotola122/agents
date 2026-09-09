@@ -58,6 +58,7 @@
 "coji/natural-japanese" = true
 
 [skills]
+big-bang = true
 codegraph = false
 config-catalog = false
 codex = true

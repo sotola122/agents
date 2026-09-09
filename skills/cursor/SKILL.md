@@ -5,7 +5,7 @@ description: Operate Cursor Agent CLI for coding and inspection.
 
 # Cursor Agent CLI
 
-Operate Cursor Agent non-interactively through Hermes `terminal` and `process` tools. Keep task content in the current request; this skill covers only CLI behavior, permissions, workspaces, and verification.
+Operate Cursor Agent through an interactive Herdr TUI for Big Bang or user-visible pane work; use non-interactive runs only for explicitly headless tasks and bounded smoke checks. Keep task content in the current request; this skill covers only CLI behavior, permissions, workspaces, and verification.
 
 ## When to Use
 
@@ -25,9 +25,20 @@ terminal(command="agent --list-models")
 
 Completion: the installed binary reports an authenticated account and the requested model is available.
 
+## Interactive Herdr Runs
+
+For Big Bang or user-visible pane work, load `herdr`, verify caller context, and create an owned sibling pane according to that skill. Start the TUI and send work through the agent surface:
+
+```text
+herdr agent start <unique-name> --kind cursor --pane <returned-pane-id> -- --sandbox enabled --trust --workspace <absolute-path> --model <verified-model-id>
+herdr agent prompt <unique-name> '<task>' --wait --timeout 120000
+```
+
+Apply the permission and read-only mode rules below to native startup arguments. Do not pass `--print` / `-p` or print-only output flags. Stream-JSON displays protocol events, not the interactive TUI. Inspect blocked or stalled runs before sending more input; never silently fall back to headless execution. Send follow-ups to the same live agent. The TUI exposes only the reasoning/status and edits that Cursor itself displays; do not promise access to hidden reasoning.
+
 ## Non-Interactive Runs
 
-Use `--print`, pin the absolute workspace, and enable Cursor's sandbox explicitly:
+For explicitly headless tasks, use `--print`, pin the absolute workspace, and enable Cursor's sandbox explicitly:
 
 ```text
 terminal(
@@ -94,7 +105,7 @@ Inspect and remove the temporary workspace after the process exits. A successful
 
 ## Background and Interactive Runs
 
-For a long bounded run, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. Interactive Cursor Agent requires `pty=true`; prefer print mode for delegation.
+For a long bounded headless run, use `terminal(background=true, notify=true)` and inspect it with the process tool. Interactive Cursor Agent requires a PTY: Herdr supplies it in managed panes; direct terminal runs require `pty=true` with `background=true`. Big Bang uses the interactive Herdr route above, not print mode.
 
 ## Workspace Safety
 
@@ -104,8 +115,8 @@ Capture `git status --short` plus content-level diffs/hashes before writable run
 
 After every run:
 
-1. Check exit status and retain actual stdout/stderr.
-2. When using JSON output, confirm a terminal completion event.
+1. For headless runs, check process exit status and retain actual stdout/stderr. For interactive runs, inspect the completed response through Herdr; idle/done alone is not task success, and the process need not exit.
+2. When using headless JSON output, confirm a terminal completion event.
 3. For writable runs, inspect repository status, content diff, and relevant tests.
 4. Report model, mode, sandbox, workspace, and any incomplete checks.
 
