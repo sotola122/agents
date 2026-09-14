@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "3b478e69dcbe8e416ddd46f0e24156392d4e71da"
+rev = "32503f81f7f22552d86f048afb3de179f44e049a"
 license = "Apache-2.0"
 
 [[assets]]
@@ -315,7 +315,7 @@ excludes = ["plans", "docs", ".github"]
 [[sources]]
 id = "ponytail"
 url = "https://github.com/DietrichGebert/ponytail.git"
-rev = "356918eba965ee1eac64bd3a7f0dd02108350de5"
+rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
 license = "MIT"
 
 [[assets]]

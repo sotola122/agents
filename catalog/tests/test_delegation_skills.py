@@ -88,7 +88,7 @@ class DelegationSkillTests(unittest.TestCase):
 
         source = next(item for item in catalog["sources"] if item["id"] == "herdr")
         self.assertEqual(source["url"], "https://github.com/herdrdev/herdr.git")
-        self.assertEqual(source["rev"], "3b478e69dcbe8e416ddd46f0e24156392d4e71da")
+        self.assertEqual(source["rev"], "32503f81f7f22552d86f048afb3de179f44e049a")
         self.assertEqual(source["license"], "Apache-2.0")
 
         asset = next(
@@ -129,7 +129,7 @@ class DelegationSkillTests(unittest.TestCase):
 
         source = next(item for item in catalog["sources"] if item["id"] == "ponytail")
         self.assertEqual(source["url"], "https://github.com/DietrichGebert/ponytail.git")
-        self.assertEqual(source["rev"], "356918eba965ee1eac64bd3a7f0dd02108350de5")
+        self.assertEqual(source["rev"], "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156")
         self.assertEqual(source["license"], "MIT")
 
         expected = (
