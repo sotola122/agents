@@ -337,10 +337,10 @@ source_is_file = true
 [[assets]]
 id = "herdrdev/herdr"
 source = "herdr"
-rev = "95e97bff3ac090ffc71bf24174ccc2449e97bcc6"
+rev = "28360107c1bfab57fb0de99d74bfa48e74423ca8"
 export_hash = "cf89f0d0ce0699dc7f94e569fc7a53c03e55b0d91a52446329300029e8b3f226"
 target = "skills/herdr"
-cache = ".cache/sources/herdr/95e97bff3ac090ffc71bf24174ccc2449e97bcc6/herdr"
+cache = ".cache/sources/herdr/28360107c1bfab57fb0de99d74bfa48e74423ca8/herdr"
 source_is_file = false
 
 [[assets]]
