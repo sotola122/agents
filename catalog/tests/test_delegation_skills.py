@@ -85,10 +85,15 @@ class DelegationSkillTests(unittest.TestCase):
             catalog = tomllib.load(stream)
         with (ROOT / "assets.local.toml.example").open("rb") as stream:
             enabled = tomllib.load(stream)["external"]
+        with (ROOT / "sources.lock.toml").open("rb") as stream:
+            locked = tomllib.load(stream)["assets"]
 
         source = next(item for item in catalog["sources"] if item["id"] == "herdr")
         self.assertEqual(source["url"], "https://github.com/herdrdev/herdr.git")
-        self.assertEqual(source["rev"], "21fd121a63db53ff44b947bbe38c47bbf35e632c")
+        self.assertEqual(
+            source["rev"],
+            next(item["rev"] for item in locked if item["id"] == "herdrdev/herdr"),
+        )
         self.assertEqual(source["license"], "Apache-2.0")
 
         asset = next(
