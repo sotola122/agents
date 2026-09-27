@@ -1,18 +1,13 @@
 ---
 name: codex
-description: Operate Codex CLI for coding, review, and verification.
+description: Run or resume Codex CLI for delegated implementation, review, verification, or CLI diagnosis.
 ---
 
 # Codex CLI
 
 Operate Codex non-interactively through Hermes `terminal` and `process` tools. Task content comes from the current user request; this skill defines only CLI execution and safety.
 
-## When to Use
-
-- The user explicitly asks to run or delegate work to Codex
-- A bounded implementation or verification task needs a separate CLI agent
-- A working tree, branch, or commit needs `codex review`
-- Codex installation, login, model, sandbox, or output behavior needs checking
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to codex); use workspace-local `.codex` when codex itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
 
 ## Readiness
 
@@ -31,7 +26,7 @@ Use `codex exec` with an explicit workspace and sandbox:
 
 ```text
 terminal(
-  command="codex exec --ephemeral --sandbox <mode> -C /absolute/project/path '<task>'",
+  command="codex exec --sandbox <mode> -C /absolute/project/path '<task>'",
   workdir="/absolute/project/path",
   timeout=300,
 )
@@ -43,7 +38,7 @@ Sandbox modes:
 - `workspace-write` — implementation or commands that may write under the workspace
 - `danger-full-access` — avoid unless the user explicitly accepts the risk
 
-`--sandbox` is the technical boundary; prose requesting no edits is not one. Use `--ephemeral` for one-shot work that should not persist a Codex session.
+`--sandbox` is the technical boundary; prose requesting no edits is not one. Reserve `--ephemeral` for disposable smoke checks or an explicit no-history request; ordinary delegated work must remain resumable.
 
 ## Model and Configuration
 
@@ -72,7 +67,7 @@ Do not combine a custom task argument with `--uncommitted`, `--base`, or `--comm
 Use `-` to read task text from stdin when shell quoting or size makes an argument unsuitable:
 
 ```text
-terminal(command="codex exec --ephemeral --sandbox read-only -C /project - < /absolute/task.txt")
+terminal(command="codex exec --sandbox read-only -C /project - < /absolute/task.txt")
 ```
 
 The following controls are `codex exec` only; `codex review` does not accept them in the installed CLI:
@@ -86,7 +81,13 @@ Progress is written to stderr; the final response is written to stdout. Capture 
 
 ## Sessions and Background Runs
 
-Use `codex exec resume --last` or a session ID only when continuity is intentional. For long bounded work, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`.
+Capture the native session ID from actual CLI/session output; when using `--json`, read the `thread_id` from the thread-start event. Save the ID with the workspace, scope, decisions, and evidence in the caller-owned history. Native rollout files may remain in Codex's supported global store; the workspace-local record is the durable lookup and summary. Do not redirect `CODEX_HOME` or copy authentication to make history local.
+
+For a matching prior task, run `codex exec resume <SESSION_ID> '<follow-up>'` from the recorded absolute workspace. Check `codex exec resume --help` and explicitly retain the currently authorized sandbox, model, and working-directory settings using supported option placement; `exec` and `exec resume` options can differ. Avoid `--last` and cross-workspace selection. If the native session cannot be resumed, follow harness-sessions to reconstruct context in a new session.
+
+Record standalone `codex review` results as history even if that command exposes no resumable ID; mark native resumption unavailable instead of fabricating an ID. A follow-up can receive that recorded review as context in `exec`.
+
+For long work, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. Treat tool wait expiration as a reason to inspect progress, not to kill or relaunch the worker. Record the outcome and next action before handoff.
 
 Interactive Codex requires `pty=true`; prefer `exec` or `review` for delegation.
 
@@ -96,7 +97,7 @@ Set both Hermes `workdir` and Codex `-C` to the resolved absolute workspace. Tre
 
 Before a writable run, capture `git status --short` plus content-level diffs/hashes. A worktree based on `HEAD` omits dirty tracked and untracked state; reproduce and hash-verify that state before delegating against the worktree.
 
-Codex must not commit, push, open a PR, or access credentials unless the user separately requests and authorizes that action.
+Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
@@ -107,7 +108,7 @@ After every run:
 3. For writable runs, inspect repository status, content diff, and relevant tests.
 4. Report model, sandbox, workspace, and any incomplete checks.
 
-Completion: process success and every workspace side effect are accounted for.
+Completion: process success, requested evidence, workspace side effects, and a saved continuity record are accounted for.
 
 ## Pitfalls
 

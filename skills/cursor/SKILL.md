@@ -1,17 +1,13 @@
 ---
 name: cursor
-description: Operate Cursor Agent CLI for coding and inspection.
+description: Run or resume Cursor Agent CLI for delegated coding, inspection, or CLI diagnosis; use for interactive Herdr panes and explicitly headless tasks.
 ---
 
 # Cursor Agent CLI
 
 Operate Cursor Agent through an interactive Herdr TUI for Big Bang or user-visible pane work; use non-interactive runs only for explicitly headless tasks and bounded smoke checks. Keep task content in the current request; this skill covers only CLI behavior, permissions, workspaces, and verification.
 
-## When to Use
-
-- The user explicitly asks to run or delegate work to Cursor Agent
-- A bounded coding or inspection task needs Cursor's CLI
-- Cursor authentication, model access, modes, worktrees, or output needs checking
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to cursor); use workspace-local `.cursor` when cursor itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
 
 ## Readiness
 
@@ -30,11 +26,13 @@ Completion: the installed binary reports an authenticated account and the reques
 For Big Bang or user-visible pane work, load `herdr`, verify caller context, and create an owned sibling pane according to that skill. Start the TUI and send work through the agent surface:
 
 ```text
-herdr agent start <unique-name> --kind cursor --pane <returned-pane-id> -- --sandbox enabled --trust --workspace <absolute-path> --model <verified-model-id>
-herdr agent prompt <unique-name> '<task>' --wait --timeout 120000
+herdr agent start <unique-name> --kind cursor --pane <returned-pane-id> -- --sandbox enabled --workspace <absolute-path> --model <verified-model-id> --resume <explicit-chat-id>
+herdr agent prompt <unique-name> '<task>' --wait --timeout 600000
 ```
 
-Apply the permission and read-only mode rules below to native startup arguments. Do not pass `--print` / `-p` or print-only output flags. Stream-JSON displays protocol events, not the interactive TUI. Inspect blocked or stalled runs before sending more input; never silently fall back to headless execution. Send follow-ups to the same live agent. The TUI exposes only the reasoning/status and edits that Cursor itself displays; do not promise access to hidden reasoning.
+Resolve the explicit chat ID through the session procedure below before startup. Apply the permission and read-only mode rules below to native arguments. `--trust` is a headless option; inspect any interactive trust UI under the current authorization. Keep print-only flags off the TUI route. Inspect blocked or stalled runs before sending more input; never silently fall back to headless execution. Send follow-ups to the same live agent. The TUI exposes only what Cursor itself displays.
+
+In Big Bang, follow its supervision decisions. For other pane work, likewise allow at least 600000 ms per completion wait, inspect `herdr agent get` and `herdr agent read` on timeout, then continue, advise, or interrupt based on evidence. Timeout alone does not authorize stopping the worker, closing the pane, or resubmitting. Use an outer background/process handle when necessary to keep long waits alive.
 
 ## Non-Interactive Runs
 
@@ -42,7 +40,7 @@ For explicitly headless tasks, use `--print`, pin the absolute workspace, and en
 
 ```text
 terminal(
-  command="agent --print --sandbox enabled --trust --workspace /absolute/project/path '<task>'",
+  command="agent --print --sandbox enabled --trust --workspace /absolute/project/path --resume <explicit-chat-id> '<task>'",
   workdir="/absolute/project/path",
   timeout=300,
 )
@@ -76,10 +74,15 @@ terminal(command="agent --print --force --sandbox enabled --trust --workspace /p
 - `--model <model>` — select a model
 - `--output-format text|json|stream-json` — output format in print mode
 - `--stream-partial-output` — emit text deltas with `stream-json`
-- `--continue` — continue the latest conversation
-- `--resume [chatId]` — resume a selected conversation
+- `--resume <chatId>` — resume the explicitly selected native conversation
 
 Use text for a simple handoff and JSON/stream-JSON when terminal events or machine parsing are required.
+
+## Session continuity
+
+For a matching recorded conversation, pass its verified native ID with `--resume <chatId>` and retain the explicit workspace. For new ordinary work, confirm support with `agent create-chat --help`, run `agent --workspace <absolute-path> create-chat`, capture the returned ID, and save it before launching the task with `--resume`. If unavailable, start normally and obtain the actual ID from supported CLI/session metadata; record the limitation rather than guessing or using the most recent chat.
+
+Herdr names and pane IDs do not replace the native chat ID. Keep Cursor's native session storage in its supported location; the local record stores the ID, decisions, and recovery context. Reuse a live TUI until it needs restarting. At every handoff, update the caller-owned history with the ID, evidence, and next action. Use the reconstruction procedure in harness-sessions if the native session is gone.
 
 ## Workspaces and Worktrees
 
@@ -109,7 +112,7 @@ For a long bounded headless run, use `terminal(background=true, notify=true)` an
 
 ## Workspace Safety
 
-Capture `git status --short` plus content-level diffs/hashes before writable runs, and compare them afterward. Cursor must not commit, push, open a PR, or access credentials unless the user separately requests and authorizes that action.
+Capture `git status --short` plus content-level diffs/hashes before writable runs, and compare them afterward. Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
@@ -120,7 +123,7 @@ After every run:
 3. For writable runs, inspect repository status, content diff, and relevant tests.
 4. Report model, mode, sandbox, workspace, and any incomplete checks.
 
-Completion: process success and every workspace side effect are accounted for.
+Completion: the requested outcome and workspace side effects are verified, and local history identifies the conversation and its last verified state. For an interactive run, the worker can remain alive.
 
 ## Pitfalls
 

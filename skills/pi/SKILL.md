@@ -1,17 +1,13 @@
 ---
 name: pi
-description: Operate Pi CLI for bounded coding delegation.
+description: Run or resume Pi CLI for delegated coding, inspection, verification, or CLI diagnosis.
 ---
 
 # Pi CLI
 
 Operate Pi as a child coding agent through Hermes `terminal` and `process` tools. Keep this skill about executable CLI behavior; task content comes from the current user request.
 
-## When to Use
-
-- The user explicitly asks to run or delegate work to Pi
-- A bounded coding task needs a separate CLI agent
-- Pi authentication, model access, attachments, or output modes need checking
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to pi); use workspace-local `.pi` when pi itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
 
 ## Readiness
 
@@ -32,13 +28,13 @@ Use `--print` for bounded work and set `workdir` to the target repository:
 
 ```text
 terminal(
-  command="pi --print --no-session --no-extensions --no-skills --no-prompt-templates --no-context-files --no-approve <permission flags> '<task>'",
+  command="pi --print --session-dir <absolute-history-dir>/native --no-extensions --no-skills --no-prompt-templates --no-context-files --no-approve <permission flags> '<task>'",
   workdir="/absolute/project/path",
   timeout=300,
 )
 ```
 
-The isolation flags suppress ambient extensions, skills, templates, and context files. Add those resources explicitly only when the user requests them.
+Resolve `<absolute-history-dir>` inside the Git-ignored `agent-sessions/pi/` area before launch. The isolation flags suppress ambient extensions, skills, templates, and context files. Add those resources explicitly when required by the authorized task. Confirm options with the installed `pi --help`; retain session persistence independently of these isolation choices.
 
 ### Permission flags
 
@@ -84,16 +80,19 @@ Pi sends supported images as vision input and wraps text files as file content. 
 
 - `--mode text` — final text output
 - `--mode json` — event stream for machine verification
-- `--no-session` — ephemeral one-shot run
-- `--continue` / `--resume` / `--session <id>` — resume intentional state
+- `--session-dir <dir>` — place native session files in the selected local store
+- `--session <absolute-file-or-exact-id>` — resume the explicitly selected session
+- `--no-session` — disposable smoke check or explicit no-history request only
 
-For a long bounded run, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. Interactive Pi requires `pty=true`; prefer print mode for delegation.
+Capture the actual native session file/ID from session output or metadata, verify its workspace, and save it in the caller-owned record. Prefer the explicit absolute session file for a follow-up, retaining `--session-dir`, permission/isolation flags, and the target workdir. Avoid `--continue` or an implicit resume picker when selecting a recorded conversation. Native session contents belong to Pi; append progress only to the separate history record. If the native file is unavailable, use the reconstruction path in harness-sessions.
+
+For long work, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. A tool wait timeout calls for state/progress inspection, not automatic termination or duplicate execution. Interactive Pi requires `pty=true`; prefer print mode for delegation.
 
 ## Workspace Safety
 
 Capture `git status --short` and content-level diffs/hashes before writable runs. A worktree created from `HEAD` omits dirty tracked and untracked state; materialize and hash-verify that state before testing it elsewhere, or run in place with explicit side-effect monitoring.
 
-Pi must not commit, push, open a PR, or read secrets unless the user separately requests and authorizes that action.
+Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
@@ -104,7 +103,7 @@ After every run:
 3. For writable runs, inspect `git status --short`, the content diff, and relevant tests.
 4. Report the exact provider/model and any incomplete checks.
 
-Completion: process success, requested evidence, and workspace side effects are all accounted for.
+Completion: process success, requested evidence, workspace side effects, and a saved continuity record are all accounted for.
 
 ## Pitfalls
 
