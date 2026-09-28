@@ -61,6 +61,23 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertIn("The following controls are `codex exec` only", text)
         self.assertIn("`codex review` does not accept them", text)
 
+    def test_pi_herdr_runs_use_an_interactive_pane(self) -> None:
+        text = (ROOT / "skills" / "pi" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        herdr = text.split("## Herdr Runs", 1)[1].split("## Non-Interactive Runs", 1)[0]
+        self.assertIn("HERDR_ENV=1", herdr)
+        self.assertIn("herdr pane split --current", herdr)
+        self.assertIn('--cwd "$PWD" --no-focus', herdr)
+        self.assertIn(".result.pane.pane_id", herdr)
+        self.assertIn("--kind pi --pane <returned-pane-id> --", herdr)
+        self.assertIn("herdr agent prompt", herdr)
+        self.assertIn("herdr agent read", herdr)
+        self.assertIn("Do not pass `--print`, `-p`, `--mode json`, or `--mode rpc`", herdr)
+        self.assertLess(herdr.index("herdr pane split"), herdr.index("herdr agent start"))
+        self.assertNotIn("prefer print mode for delegation", text)
+        self.assertIn("Only when Herdr was not requested", text)
+
     def test_obsolete_package_directories_are_absent(self) -> None:
         self.assertFalse((ROOT / "skills" / "delegate-pi").exists())
         self.assertFalse((ROOT / "skills" / "delegate-codex").exists())
