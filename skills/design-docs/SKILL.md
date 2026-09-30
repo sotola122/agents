@@ -9,7 +9,7 @@ Write a reviewable design decision document in Japanese unless the user requests
 
 ## 1. Frame the decision
 
-Identify the reader, the decision they need to make, the target artifact/path, and the known constraints. Read relevant code, specifications, measurements, and prior decisions. Separate verified facts, assumptions, and unresolved questions. Use existing repository document conventions when applicable; use `document-writing` for repository placement and prose conventions, while this skill owns design structure, length, and diagrams.
+Identify the reader, the decision they need to make, the target artifact/path, and the known constraints. Read relevant code, specifications, measurements, and prior decisions. Separate verified facts, assumptions, and unresolved questions. Use existing repository document conventions for placement and prose when applicable. This skill owns design structure, length, and diagrams.
 
 Resolve what available evidence can answer before asking questions. Ask only about missing information that changes the design; otherwise state the assumption and continue the draft. On revisions, read the current document and preserve still-valid decisions and their rationale.
 

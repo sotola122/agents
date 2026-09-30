@@ -61,12 +61,10 @@
 
 [skills]
 big-bang = true
-codegraph = false
 config-catalog = false
 codex = true
 cursor = true
 design-docs = true
-document-writing = true
 empirical-prompt-tuning = false
 git-worktree = true
 github-issue = true
