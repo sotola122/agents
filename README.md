@@ -168,6 +168,7 @@ cursor = true
 `sync`（`update` に伴う同期を含む）が成功すると、`assets.local.toml` に未登録の外部 asset と `skills/<name>/SKILL.md` を持つ local skill の設定を追記します。ファイルがなければ作成し、既存の値とコメントは保持します。
 追記する値は、既存の `[external]` がある場合は `false`、省略されていた場合は従来の適用範囲を維持するため `true`、local skill は `false` です。`--asset` 指定時も設定の補完は一覧全体が対象です。
 `[external]` に現在の `sources.toml` にない ID が残っている場合、設定を保持したまま `ignored setting` と表示し、適用対象から除外します。
+`[skills]` / `[agents]` / `[context]` で `true` のキーに対応する path がリポジトリに無い場合も同様です。削除済みの skill 名（例: `document-writing`）が残っていても `diff` / `apply` / `validate` は失敗しません。
 
 `sources.toml` への local asset 登録は不要です（登録するとエラーになります）。
 

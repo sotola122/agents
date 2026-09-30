@@ -5,6 +5,7 @@
 #   - section omitted: all external assets are included in diff/apply
 #   - section present: only true entries are included (false/omitted = off)
 # [skills]/[agents]/[context] control local tree assets (opt-in: true to include).
+# A true key whose path is gone is kept and ignored; it does not fail diff/apply.
 # sync always uses every external asset pinned in sources.toml.
 #
 # Harnesses follow apply.allowed_harnesses ∩ kind support.

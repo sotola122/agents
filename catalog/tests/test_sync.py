@@ -606,6 +606,63 @@ class SyncCliTests(unittest.TestCase):
         self.assertIn("ignored setting:", output.getvalue())
         self.assertIn("fixture/nope", output.getvalue())
 
+    def test_removed_local_skill_key_does_not_fail_diff_apply_validate(self) -> None:
+        def exercise() -> None:
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            local_dir = self.root / "skills" / "native"
+            local_dir.mkdir(parents=True)
+            (local_dir / "SKILL.md").write_text("# Native\n", encoding="utf-8")
+            local_settings = textwrap.dedent(
+                """
+                [skills]
+                document-writing = true
+                native = true
+                """
+            )
+            settings_path = self.root / "assets.local.toml"
+            settings_path.write_text(local_settings, encoding="utf-8")
+            self.assertFalse((self.root / "skills" / "document-writing").exists())
+
+            def run(*args: str) -> tuple[int, str, str]:
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+                with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                    code = core.main(["--root", str(self.root), *args])
+                return code, stdout.getvalue(), stderr.getvalue()
+
+            code, stdout, stderr = run("validate")
+            self.assertEqual(code, 0, stderr)
+            self.assertEqual(stderr, "")
+            self.assertIn("validation passed", stdout)
+            self.assertIn(
+                "ignored setting: assets.local.toml [skills.document-writing] "
+                "(path not found: skills/document-writing)",
+                stdout,
+            )
+
+            code, stdout, stderr = run("diff", "--kind", "skill", "--harness", "cursor")
+            self.assertEqual(stderr, "")
+            self.assertNotEqual(code, 2)
+            self.assertIn("local/native", stdout)
+            self.assertNotIn("local/document-writing", stdout)
+            self.assertIn("skills.document-writing", stdout)
+
+            code, stdout, stderr = run("apply", "--kind", "skill", "--harness", "cursor")
+            self.assertEqual(code, 0, stderr)
+            self.assertEqual(stderr, "")
+            self.assertNotIn("local/document-writing", stdout)
+            applied = self.home / ".cursor" / "skills" / "native" / "SKILL.md"
+            self.assertEqual(applied.read_text(encoding="utf-8"), "# Native\n")
+            self.assertFalse((self.home / ".cursor" / "skills" / "document-writing").exists())
+
+            config = core.load_config(self.root)
+            self.assertTrue(any(asset.id == "local/native" for asset in config.assets))
+            self.assertFalse(any(asset.id == "local/document-writing" for asset in config.assets))
+            self.assertEqual(settings_path.read_text(encoding="utf-8"), local_settings)
+
+        self._run(exercise)
+
     def test_sync_cleans_stale_cache_entries(self) -> None:
         def exercise() -> None:
             config = core.load_config(self.root)

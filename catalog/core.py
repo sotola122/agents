@@ -217,12 +217,9 @@ def _parse_local_skill_excludes(
     return result
 
 
-def _parse_enable_table(
-    table: object, *, section: str, known_ids: Iterable[str] | None = None
-) -> dict[str, bool]:
+def _parse_enable_table(table: object, *, section: str) -> dict[str, bool]:
     if not isinstance(table, dict) or not table:
         raise SyncError(f"{LOCAL_ASSETS_REL} の [{section}] は空でないテーブルです")
-    known = set(known_ids) if known_ids is not None else None
     result: dict[str, bool] = {}
     for name, enabled in table.items():
         if not isinstance(name, str) or not name:
@@ -235,10 +232,6 @@ def _parse_enable_table(
         if not isinstance(enabled, bool):
             raise SyncError(
                 f"{LOCAL_ASSETS_REL} の [{section}].{name} は true/false で指定してください"
-            )
-        if known is not None and name not in known:
-            raise SyncError(
-                f"{LOCAL_ASSETS_REL} の [{section}] に未知の asset.id があります: {name}"
             )
         result[name] = enabled
     return result
@@ -278,16 +271,19 @@ def _load_local_assets(
                 f"local/{basename}" if kind == "skill" else f"local/{kind}/{basename}",
                 f"local.{section}.id",
             )
+            location = root.joinpath(*PurePosixPath(relative).parts)
+            # Removed skills stay in gitignored assets.local.toml. Keep the key and
+            # skip it, matching unknown [external] ids.
+            if not location.exists():
+                print(
+                    f"ignored setting: {LOCAL_ASSETS_REL} [{section}.{name}] "
+                    f"(path not found: {relative})"
+                )
+                continue
             if asset_id in asset_ids:
                 raise SyncError(f"asset.id が重複しています: {asset_id}")
             if any(_paths_overlap(relative, existing) for existing in targets):
                 raise SyncError(f"catalog target が重複または重なっています: {relative}")
-            location = root.joinpath(*PurePosixPath(relative).parts)
-            if not location.exists():
-                raise SyncError(
-                    f"{LOCAL_ASSETS_REL} の [{section}].{name} に対応する path がありません: "
-                    f"{relative}"
-                )
             harnesses = _default_asset_harnesses(kind, allowed_harnesses)
             if kind == "skill":
                 harnesses = tuple(
