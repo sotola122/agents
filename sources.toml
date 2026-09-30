@@ -11,7 +11,7 @@ hermes = ["codex"]
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"
-rev = "c55ee46073ed923f86ce59a5eb3b6d895095d1b7"
+rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
 license = "MIT"
 
 [[sources]]
@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "fb8b9e2e04757695751579f66831f8f99dc09c55"
+rev = "331775c3e51e8cca4d122468180738101bd9e6b0"
 license = "Apache-2.0"
 
 [[assets]]
@@ -82,6 +82,13 @@ path = "skills/engineering/implement"
 target = "skills/implement"
 
 [[assets]]
+id = "mattpocock/implement-spec"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/implement-spec"
+target = "skills/implement-spec"
+
+[[assets]]
 id = "mattpocock/improve-codebase-architecture"
 source = "mattpocock-skills"
 kind = "skill"
@@ -96,18 +103,28 @@ path = "skills/engineering/prototype"
 target = "skills/prototype"
 
 [[assets]]
+id = "mattpocock/pr"
+source = "mattpocock-skills"
+kind = "skill"
+path = "skills/engineering/pr"
+target = "skills/pr"
+
+[[assets]]
 id = "mattpocock/research"
 source = "mattpocock-skills"
 kind = "skill"
 path = "skills/engineering/research"
 target = "skills/research"
 
+# resolving-merge-conflicts was removed upstream in daa01d8 (v1.3 line).
+# The archived docs page says nothing replaces it. Do not re-pin that path.
+
 [[assets]]
-id = "mattpocock/resolving-merge-conflicts"
+id = "mattpocock/retro"
 source = "mattpocock-skills"
 kind = "skill"
-path = "skills/engineering/resolving-merge-conflicts"
-target = "skills/resolving-merge-conflicts"
+path = "skills/engineering/retro"
+target = "skills/retro"
 
 [[assets]]
 id = "mattpocock/setup-matt-pocock-skills"

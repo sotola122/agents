@@ -1,6 +1,6 @@
 ---
 name: git-worktree
-description: User-owned linked worktree create / list / retain / remove.
+description: Create, list, retain, or remove a user-owned linked Git worktree.
 disable-model-invocation: true
 ---
 
@@ -8,11 +8,9 @@ disable-model-invocation: true
 
 Lifecycle only for user-owned linked worktrees: `list` | `create` | `retain` | `remove`.
 
-Do not perform implementation or verification inside the worktree; return that to the caller.
+Return implementation and verification to the caller. Disposable worktrees owned by `pi`, `codex`, or `cursor` delegation are out of scope; stop on those paths at every entry.
 
-Disposable worktrees owned by `pi`, `codex`, or `cursor` delegation are out of scope. Refuse those paths on every entry.
-
-No writing-norm pointers.
+Report lifecycle results only. Prose-norm skills stay unused.
 
 ## Placement
 

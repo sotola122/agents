@@ -1,8 +1,8 @@
 ---
 name: document-writing
 description: >-
-  ADR / repository documentation: place, research, write, and diff Japanese
-  in-repo docs (design notes, ADRs, docs/ explainers).
+  Write Japanese in-repo docs (explainers, ADRs, design notes): choose the
+  path, gather evidence, apply the prose branch, and show the diff.
 ---
 
 # Document writing

@@ -177,6 +177,35 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertIs(enabled["dietrichgebert/ponytail-gain"], False)
         self.assertIs(enabled["dietrichgebert/ponytail-help"], False)
 
+    def test_mattpocock_merge_conflict_skill_stays_unpinned(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            catalog = tomllib.load(stream)
+        with (ROOT / "assets.local.toml.example").open("rb") as stream:
+            enabled = tomllib.load(stream)["external"]
+        with (ROOT / "sources.lock.toml").open("rb") as stream:
+            locked = {
+                item["id"]: item for item in tomllib.load(stream)["assets"]
+            }
+
+        source = next(
+            item for item in catalog["sources"] if item["id"] == "mattpocock-skills"
+        )
+        asset_ids = {item["id"] for item in catalog["assets"]}
+        self.assertNotIn("mattpocock/resolving-merge-conflicts", asset_ids)
+        self.assertNotIn("mattpocock/resolving-merge-conflicts", enabled)
+        self.assertNotIn("mattpocock/resolving-merge-conflicts", locked)
+
+        for name in ("implement-spec", "pr", "retro"):
+            asset_id = f"mattpocock/{name}"
+            asset = next(item for item in catalog["assets"] if item["id"] == asset_id)
+            self.assertEqual(asset["source"], "mattpocock-skills")
+            self.assertEqual(asset["kind"], "skill")
+            self.assertEqual(asset["path"], f"skills/engineering/{name}")
+            self.assertEqual(asset["target"], f"skills/{name}")
+            self.assertIs(enabled[asset_id], True)
+            self.assertEqual(locked[asset_id]["rev"], source["rev"])
+            self.assertEqual(locked[asset_id]["source"], "mattpocock-skills")
+
     def test_natural_japanese_skill_is_pinned_and_enabled(self) -> None:
         with (ROOT / "sources.toml").open("rb") as stream:
             catalog = tomllib.load(stream)

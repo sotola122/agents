@@ -48,7 +48,7 @@ Completion: chosen template path (or default) and every required section are fix
 
 If upstream exists: `git push`. If not: resolve the branch name and run `git push -u <remote> "HEAD:refs/heads/<branch>"`.
 
-Always push when HEAD is ahead of upstream; skipping leaves an stale remote head for the PR.
+Push whenever local HEAD is ahead of upstream so the pull request tracks that tip.
 
 Force push needs separate approval regardless of default-branch name; cap at `--force-with-lease`.
 

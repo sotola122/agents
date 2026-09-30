@@ -17,10 +17,12 @@
 "mattpocock/domain-modeling" = true
 "mattpocock/grill-with-docs" = true
 "mattpocock/implement" = true
+"mattpocock/implement-spec" = true
 "mattpocock/improve-codebase-architecture" = true
 "mattpocock/prototype" = true
+"mattpocock/pr" = true
 "mattpocock/research" = true
-"mattpocock/resolving-merge-conflicts" = true
+"mattpocock/retro" = true
 "mattpocock/setup-matt-pocock-skills" = true
 "mattpocock/tdd" = true
 "mattpocock/to-spec" = true

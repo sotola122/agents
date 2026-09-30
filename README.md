@@ -24,18 +24,24 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-Herdrの操作skillは公式リポジトリのv0.8.2 tagをcommit `9eb521456ac0d19d3ab3d9d7cea3cca10baa8a4c`で固定して取り込みます。
+Herdrの操作skillは公式リポジトリをcommit `331775c3e51e8cca4d122468180738101bd9e6b0`で固定して取り込みます。
+直前の pin `fb8b9e2e04757695751579f66831f8f99dc09c55` から `skills/herdr` の tree は同一です。差分は Windows クライアントが同一ユーザーで昇格をまたいで接続できるようにする修正だけで、待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
-unslopのskillは公式リポジトリ全体をcommit `d81f5196167ded24f46fced04958c0c12d681798`で固定して取り込みます。
+unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
 SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
 catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
 
-ponytailのskillは公式リポジトリをcommit `2ed6c52c9d7e5e56942508591085fd45dea277d3`で固定して取り込みます。
+ponytailのskillは公式リポジトリをcommit `e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156`で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 
-natural-japaneseのskillは公式リポジトリをcommit `0f1cc1c5a4e2aa7590598c88a15c213a60d9545a`で固定して取り込みます。
+natural-japaneseのskillは公式リポジトリをcommit `9a78a42964096da509b8f3e011f0085a5f080151`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
+
+mattpocock/skills は commit `d81f3a183412e71a5b1e84ca21bc1a35eea03a60` で固定します。
+upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。これで `mattpocock-skills` の pin 更新が通ります。
+同じ commit で engineering に昇格した `implement-spec`、`pr`、`retro` を追加し、更新後の `ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
+domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
 
 `catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
 
