@@ -78,6 +78,28 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertNotIn("prefer print mode for delegation", text)
         self.assertIn("Only when Herdr was not requested", text)
 
+    def test_pi_runs_keep_configured_resources_enabled(self) -> None:
+        text = (ROOT / "skills" / "pi" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        launches = [
+            line for line in text.splitlines()
+            if line.startswith("herdr agent start ") or 'command="pi --print ' in line
+        ]
+        self.assertEqual(len(launches), 2)
+        for launch in launches:
+            self.assertIn("--approve", launch)
+            self.assertIn("--session-dir", launch)
+            self.assertIn("<permission flags>", launch)
+            for flag in (
+                "--no-extensions", "--no-skills", "--no-prompt-templates",
+                "--no-context-files", "--no-approve",
+            ):
+                self.assertNotIn(flag, launch)
+        self.assertIn("keep configured extensions, skills, prompt templates, and context files enabled", text)
+        self.assertIn("include required extension tools", text)
+        self.assertNotIn("permission/isolation flags", text)
+
     def test_obsolete_package_directories_are_absent(self) -> None:
         self.assertFalse((ROOT / "skills" / "delegate-pi").exists())
         self.assertFalse((ROOT / "skills" / "delegate-codex").exists())

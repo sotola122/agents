@@ -30,7 +30,7 @@ Follow the Herdr skill's layout discovery and direction rule. Default to a sibli
 
 ```text
 herdr pane split --current --direction right --cwd "$PWD" --no-focus
-herdr agent start <unique-name> --kind pi --pane <returned-pane-id> -- --session-dir <absolute-history-dir>/native --no-extensions --no-skills --no-prompt-templates --no-context-files --no-approve <permission flags>
+herdr agent start <unique-name> --kind pi --pane <returned-pane-id> -- --session-dir <absolute-history-dir>/native --approve <permission flags>
 herdr agent prompt <unique-name> '<task>' --wait --timeout 120000
 herdr agent read <unique-name> --source recent-unwrapped --lines 120
 ```
@@ -45,13 +45,13 @@ Only when Herdr was not requested, use `--print` for bounded work and set `workd
 
 ```text
 terminal(
-  command="pi --print --session-dir <absolute-history-dir>/native --no-extensions --no-skills --no-prompt-templates --no-context-files --no-approve <permission flags> '<task>'",
+  command="pi --print --session-dir <absolute-history-dir>/native --approve <permission flags> '<task>'",
   workdir="/absolute/project/path",
   timeout=300,
 )
 ```
 
-Resolve `<absolute-history-dir>` inside the Git-ignored `agent-sessions/pi/` area before launch. The isolation flags suppress ambient extensions, skills, templates, and context files. Add those resources explicitly when required by the authorized task. Confirm options with the installed `pi --help`; retain session persistence independently of these isolation choices.
+Resolve `<absolute-history-dir>` inside the Git-ignored `agent-sessions/pi/` area before launch. For both Herdr and non-interactive runs, keep configured extensions, skills, prompt templates, and context files enabled. Use `--approve` to load project-local resources in the authorized target workspace as well. Do not add resource-disabling flags unless the user explicitly requests isolation or a diagnostic run requires it. Confirm options with the installed `pi --help`; retain session persistence independently of resource loading.
 
 ## Permission Flags
 
@@ -71,7 +71,7 @@ Choose the narrowest tool set that can complete the task:
 --no-tools
 ```
 
-`--tools` is a model tool allowlist, not an OS sandbox. Treat every run with `bash`, `edit`, or `write` as writable. One agent owns a writable workspace at a time.
+`--tools` applies to built-in, extension, and custom tools; include required extension tools in the task's allowlist. It is not an OS sandbox and does not disable extension hooks. Treat every run with `bash`, `edit`, `write`, or write-capable extensions as writable. One agent owns a writable workspace at a time.
 
 ## Provider and Model
 
@@ -101,7 +101,7 @@ This is a non-interactive example, not a Herdr launch command. Pi sends supporte
 - `--session <absolute-file-or-exact-id>` — resume the explicitly selected session
 - `--no-session` — disposable smoke check or explicit no-history request only
 
-Capture the actual native session file/ID from session output or metadata, verify its workspace, and save it in the caller-owned record. Prefer the explicit absolute session file for a follow-up, retaining `--session-dir`, permission/isolation flags, and the target workdir. Avoid `--continue` or an implicit resume picker when selecting a recorded conversation. Native session contents belong to Pi; append progress only to the separate history record. If the native file is unavailable, use the reconstruction path in harness-sessions.
+Capture the actual native session file/ID from session output or metadata, verify its workspace, and save it in the caller-owned record. Prefer the explicit absolute session file for a follow-up, retaining `--session-dir`, permission flags, enabled resources, and the target workdir. Avoid `--continue` or an implicit resume picker when selecting a recorded conversation. Native session contents belong to Pi; append progress only to the separate history record. If the native file is unavailable, use the reconstruction path in harness-sessions.
 
 For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use `agent wait`, `agent get`, and `agent read` in the existing pane. A tool wait timeout calls for state/progress inspection, not automatic termination or duplicate execution. Interactive Pi outside Herdr requires `terminal(background=true, pty=true)`; this is not a substitute for a requested Herdr pane.
 
@@ -124,8 +124,7 @@ Completion: process success (non-interactive) or verified turn completion in the
 
 ## Pitfalls
 
-- `--no-extensions` still permits explicitly supplied `-e <path>` extensions.
-- `--no-skills` still permits explicitly supplied `--skill <path>` entries.
+- `--no-approve` ignores project-local files; do not use it for ordinary runs that should load project resources.
 - PowerShell comma-separated tool lists must be one quoted argument.
 - `--offline` blocks startup network operations; it does not make the model call offline.
 - Pi child shell commands are POSIX bash; Windows requires a compatible bash environment for shell work.
