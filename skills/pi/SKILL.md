@@ -31,13 +31,13 @@ Follow the Herdr skill's layout discovery and direction rule. Default to a sibli
 ```text
 herdr pane split --current --direction right --cwd "$PWD" --no-focus
 herdr agent start <unique-name> --kind pi --pane <returned-pane-id> -- --session-dir <absolute-history-dir>/native --approve <permission flags>
-herdr agent prompt <unique-name> '<task>' --wait --timeout 120000
+herdr agent prompt <unique-name> '<task>' --wait --timeout 600000
 herdr agent read <unique-name> --source recent-unwrapped --lines 120
 ```
 
 Read `<returned-pane-id>` from `.result.pane.pane_id` in the split response; `agent start` does not create a pane. Resolve the history directory and permission flags below before starting. Start Pi without an initial task argument, wait for interactive readiness, then submit the task with `agent prompt`. Do not pass `--print`, `-p`, `--mode json`, or `--mode rpc`: Herdr needs the interactive Pi UI, not a process-and-exit invocation. Herdr supplies the pane's PTY; `terminal(pty=true)` alone does not create a Herdr pane.
 
-For follow-ups, prompt the existing agent. To restart a recorded conversation, pass its explicit `--session <absolute-file>` after `--` in `agent start`. Inspect `agent get` and `agent read` on blocked, stalled, or timed-out waits; do not resubmit blindly or switch to print mode. A completed turn leaves Pi running for further interaction; do not require process exit or close the pane to prove completion.
+For follow-ups, prompt the existing agent. To restart a recorded conversation, pass its explicit `--session <absolute-file>` after `--` in `agent start`. Allow at least 600000 ms (10 minutes) for each completion wait, including the initial prompt and every continued wait. On a blocked, stalled, or timed-out wait, inspect `herdr agent get` and `herdr agent read`, then continue, advise, or interrupt from that evidence. Timeout alone does not stop the worker, close the pane, or resubmit, and it does not switch the run to print mode. A completed turn leaves Pi running for further interaction; process exit is not required to prove completion.
 
 ## Non-Interactive Runs
 
@@ -103,7 +103,7 @@ This is a non-interactive example, not a Herdr launch command. Pi sends supporte
 
 Capture the actual native session file/ID from session output or metadata, verify its workspace, and save it in the caller-owned record. Prefer the explicit absolute session file for a follow-up, retaining `--session-dir`, permission flags, enabled resources, and the target workdir. Avoid `--continue` or an implicit resume picker when selecting a recorded conversation. Native session contents belong to Pi; append progress only to the separate history record. If the native file is unavailable, use the reconstruction path in harness-sessions.
 
-For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use `agent wait`, `agent get`, and `agent read` in the existing pane. A tool wait timeout calls for state/progress inspection, not automatic termination or duplicate execution. Interactive Pi outside Herdr requires `terminal(background=true, pty=true)`; this is not a substitute for a requested Herdr pane.
+For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use `agent wait`, `agent get`, and `agent read` in the existing pane, with at least 600000 ms per completion wait. A tool wait timeout calls for state and progress inspection, then a continue, advise, or interrupt decision. Timeout alone does not stop the worker or submit the task again. Interactive Pi outside Herdr requires `terminal(background=true, pty=true)`; this is not a substitute for a requested Herdr pane.
 
 ## Workspace Safety
 
