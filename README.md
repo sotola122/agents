@@ -24,8 +24,8 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-Herdrの操作skillは公式リポジトリをcommit `347f9c99bc95672e5ebcb26753648e85801d3c71`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `331775c3e51e8cca4d122468180738101bd9e6b0` と同一です。進めた差分は Windows の通知実装と agent support guide の外部リンク削除で、待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `d6b40d4edd550ccea081f089605a64314f8c8b27`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `347f9c99bc95672e5ebcb26753648e85801d3c71` と同一です。進めた差分は Codex の idle 検出の復元とその説明の修正で、待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
