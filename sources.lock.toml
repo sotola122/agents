@@ -4,334 +4,334 @@ schema_version = 1
 [[assets]]
 id = "mattpocock/ask-matt"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
-export_hash = "1c19b4a9b156c882a28310b6a4c34d895d2742dea6bfe362409efeaed178eeb8"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
+export_hash = "6033a1cccb49fcfd144a72e8ee72be69d06ef305109bbc0783abad6592d604e7"
 target = "skills/ask-matt"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/ask-matt"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/ask-matt"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/code-review"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "81e0d3e4cc31fd9ccecb6415d58ba6392260d3c2e06a332db5a1e959545a4100"
 target = "skills/code-review"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/code-review"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/code-review"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/codebase-design"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "74587b2df0c8fa1f04cc0275c5308d53c69ae48e29979fc43edf4b90b0dbb327"
 target = "skills/codebase-design"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/codebase-design"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/codebase-design"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/diagnosing-bugs"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "16ddb18108d488191175891b597ca17d683b0687609761f10d4bfcfca169a72f"
 target = "skills/diagnosing-bugs"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/diagnosing-bugs"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/diagnosing-bugs"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/domain-modeling"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "c78c7c4d2fcbcdda9342d0e10eeaf1dc172d8874b45be2a742f46127f4957ef2"
 target = "skills/domain-modeling"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/domain-modeling"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/domain-modeling"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/grill-with-docs"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "46f88150adbdcf1a50a904993eb57defe54acdc976f273855b5043fb684f8aeb"
 target = "skills/grill-with-docs"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/grill-with-docs"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/grill-with-docs"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/implement"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "83f1dbd7a8bb74f3c0098d2e6c20966c00d58f479bb1721fc3402eed97e20416"
 target = "skills/implement"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/implement"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/implement"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/implement-spec"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "afd8a603be066f6e14b82d24e2f968c24461d46b9074fc43c314203c1896c971"
 target = "skills/implement-spec"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/implement-spec"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/implement-spec"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/improve-codebase-architecture"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "6ff17861f87145687e1615b83e104621fb29702ae3e2fd4467d53da7a07287fa"
 target = "skills/improve-codebase-architecture"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/improve-codebase-architecture"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/improve-codebase-architecture"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/prototype"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "b55a25ece6799eb6772785d875a8e7c8d4e872241992b096abfbc696452f9957"
 target = "skills/prototype"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/prototype"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/prototype"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/pr"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "d4735bdd35cfa7661dec3656e6d4d4b318ec53637cf6790d1a85101e80251c8f"
 target = "skills/pr"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/pr"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/pr"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/research"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "0447d0189f409001ccda3b880d9b579c8c462bd6e503817cf82bdae6b3feb4c8"
 target = "skills/research"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/research"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/research"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/retro"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "0ead6fb9b5464b44fe28484261a2421d61a1321f5bd7a5eab12b39a6e5ff54f7"
 target = "skills/retro"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/retro"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/retro"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/setup-matt-pocock-skills"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "812d44dfeda6b151302b922f65510d419ac51d9c88bd74df05dc4f9b2fa4dcb7"
 target = "skills/setup-matt-pocock-skills"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/setup-matt-pocock-skills"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/setup-matt-pocock-skills"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/tdd"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "96e5aee87a12ca02ab6feee3c21d8d1e58769b5323595e0b015a23add79ecc14"
 target = "skills/tdd"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/tdd"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/tdd"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/to-spec"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "2a411df805627225c48689a544139e2b3df36f0e66cbe4a387218d8ec017b541"
 target = "skills/to-spec"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/to-spec"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/to-spec"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/to-tickets"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "ea5429f5a78a460b94b587420328b881ed089f7f9947b4b764a84dc49bd17f7c"
 target = "skills/to-tickets"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/to-tickets"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/to-tickets"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/triage"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "29a2832c075035bd8914594503bbf9d7e3e1e839bcdb6c3879b65029423297c2"
 target = "skills/triage"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/triage"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/triage"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/wayfinder"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "90ec7b63bab9a775685faf1d58322d4aa464d4a2d55c50e64ab923d95ab31cc3"
 target = "skills/wayfinder"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/wayfinder"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/wayfinder"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/wizard"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "1256f9e472f36ec76b755c8cff03f6bc328d02d30ce2c51d229f09db84178774"
 target = "skills/wizard"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/wizard"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/wizard"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/claude-handoff"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "a50cb382bfb468d57ceea8bb67aa70ecedab19c0e1975d611c5465c91d08f583"
 target = "skills/claude-handoff"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/claude-handoff"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/claude-handoff"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/loop-me"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "60fe3ff629ce8bc68a6e4fd040e19e27eb7646357d598daa278ecfca05f4adfe"
 target = "skills/loop-me"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/loop-me"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/loop-me"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/setup-ts-deep-modules"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "3ce64c393d1417dfb5baa077d123b19d8984f89444bd0454de22c75035a0f917"
 target = "skills/setup-ts-deep-modules"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/setup-ts-deep-modules"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/setup-ts-deep-modules"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/writing-beats"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "d3e5846539acdad2f942189cc309e7f75b3747691a161375f0bcf2c89ac0fd78"
 target = "skills/writing-beats"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/writing-beats"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/writing-beats"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/writing-fragments"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "db3d13a7a3dc124df4bb5454bb97df9afe1f26ad727dcd02e76367591f09a06d"
 target = "skills/writing-fragments"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/writing-fragments"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/writing-fragments"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/writing-shape"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "4dcbba06952f7d594e811b16cdff29a8c2c18b1906fe7bf42c877610643c0218"
 target = "skills/writing-shape"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/writing-shape"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/writing-shape"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/git-guardrails-claude-code"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "5f79a9798d9b7056bea4c2f08ad8710c67325e77dd3581cc5b1281bc72ebe541"
 target = "skills/git-guardrails-claude-code"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/git-guardrails-claude-code"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/git-guardrails-claude-code"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/migrate-to-shoehorn"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "caac9ae6f10673d0a90b9133e17b178304fc8350c5cb671bff7dfbca2e401b85"
 target = "skills/migrate-to-shoehorn"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/migrate-to-shoehorn"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/migrate-to-shoehorn"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/scaffold-exercises"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "27d1072876652c941028328099b754fd306e22ef1ce7b915f8d5fb1f0b8f03a2"
 target = "skills/scaffold-exercises"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/scaffold-exercises"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/scaffold-exercises"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/setup-pre-commit"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "66a52cc8be741d8f0ee39bd23995283e7b672213f70b0348a5a1a536e27bc5a2"
 target = "skills/setup-pre-commit"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/setup-pre-commit"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/setup-pre-commit"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/grill-me"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "b45e522cf16f64d83523a8e4b21ba2fc2041eb17a8752ee8cdcceb20093ea123"
 target = "skills/grill-me"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/grill-me"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/grill-me"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/grilling"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "f5f3d1097c08e50119783f372baab28b759c3f3787daf55f918c5baf92ef620f"
 target = "skills/grilling"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/grilling"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/grilling"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/handoff"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "9b579b29c35cef5cfc8cbec5768d91c45f8ffe56fe348e2cfb8856e4560e6016"
 target = "skills/handoff"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/handoff"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/handoff"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/teach"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "f4de4869d682bb03c151a408222af67cf8b330e4b0c83ef6c26c23ebc18391b7"
 target = "skills/teach"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/teach"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/teach"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/to-questionnaire"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "f74dcd5e466cc9088709ff4936c23ea9d38ec47ae8f559a6733bc4815d313571"
 target = "skills/to-questionnaire"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/to-questionnaire"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/to-questionnaire"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/wait-what"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "cef1071bfb3f5998647b81d9ba5a557114a5585a79cae980bc6e4656a390aee1"
 target = "skills/wait-what"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/wait-what"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/wait-what"
 source_is_file = false
 
 [[assets]]
 id = "mattpocock/writing-for-agents"
 source = "mattpocock-skills"
-rev = "d81f3a183412e71a5b1e84ca21bc1a35eea03a60"
+rev = "24fe0ef7737efae15c87225755e9f6f5965e4888"
 export_hash = "dfd90465d4729b1e74e770aed3ae93397a565a5776f60d3332c254ca04b32fb9"
 target = "skills/writing-for-agents"
-cache = ".cache/sources/mattpocock-skills/d81f3a183412e71a5b1e84ca21bc1a35eea03a60/writing-for-agents"
+cache = ".cache/sources/mattpocock-skills/24fe0ef7737efae15c87225755e9f6f5965e4888/writing-for-agents"
 source_is_file = false
 
 [[assets]]
@@ -355,10 +355,10 @@ source_is_file = true
 [[assets]]
 id = "herdrdev/herdr"
 source = "herdr"
-rev = "d6b40d4edd550ccea081f089605a64314f8c8b27"
+rev = "e35f3937b0efe40ec0dab675709c68e1d8e8c9e6"
 export_hash = "5879359d0ed95dd23a01a019c42b35770d5eebaf0ff50e16c864d8acbef795de"
 target = "skills/herdr"
-cache = ".cache/sources/herdr/d6b40d4edd550ccea081f089605a64314f8c8b27/herdr"
+cache = ".cache/sources/herdr/e35f3937b0efe40ec0dab675709c68e1d8e8c9e6/herdr"
 source_is_file = false
 
 [[assets]]
@@ -373,55 +373,55 @@ source_is_file = false
 [[assets]]
 id = "dietrichgebert/ponytail"
 source = "ponytail"
-rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
+rev = "72c17bf6121a53a1d0aa85719944a020bd3a7b8b"
 export_hash = "04f6da2bb60a715989e899021a6c6ea409d3ac0d3eaabb2579d8985acf9c4b76"
 target = "skills/ponytail"
-cache = ".cache/sources/ponytail/e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156/ponytail"
+cache = ".cache/sources/ponytail/72c17bf6121a53a1d0aa85719944a020bd3a7b8b/ponytail"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-review"
 source = "ponytail"
-rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
-export_hash = "0ac384c3e539f4423dfe16c81cfde051e1641f224656e49fe8915fdd9fc3e581"
+rev = "72c17bf6121a53a1d0aa85719944a020bd3a7b8b"
+export_hash = "c262f7377962d96c323911a7cce59aad109a1da7f11d92cf680abd720ffce7bf"
 target = "skills/ponytail-review"
-cache = ".cache/sources/ponytail/e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156/ponytail-review"
+cache = ".cache/sources/ponytail/72c17bf6121a53a1d0aa85719944a020bd3a7b8b/ponytail-review"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-audit"
 source = "ponytail"
-rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
-export_hash = "46c7a7a63b1c5a7b6c3b0a77d6720adb21871c00c87a96ad6c99b254aba1e1a9"
+rev = "72c17bf6121a53a1d0aa85719944a020bd3a7b8b"
+export_hash = "3d623de2498658b44e9c59ef43d657c8861897767c4e953feab410f7f0787e3d"
 target = "skills/ponytail-audit"
-cache = ".cache/sources/ponytail/e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156/ponytail-audit"
+cache = ".cache/sources/ponytail/72c17bf6121a53a1d0aa85719944a020bd3a7b8b/ponytail-audit"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-debt"
 source = "ponytail"
-rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
-export_hash = "e660004ce072e4e9a06db771914065ac35e452da9c7768c840f46bfca9190855"
+rev = "72c17bf6121a53a1d0aa85719944a020bd3a7b8b"
+export_hash = "f6358030e308918a3f5414416a079a6a451b1ebe42db7800527f4bd180ce8e25"
 target = "skills/ponytail-debt"
-cache = ".cache/sources/ponytail/e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156/ponytail-debt"
+cache = ".cache/sources/ponytail/72c17bf6121a53a1d0aa85719944a020bd3a7b8b/ponytail-debt"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-gain"
 source = "ponytail"
-rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
+rev = "72c17bf6121a53a1d0aa85719944a020bd3a7b8b"
 export_hash = "7057236dbcde2e6ab43bca96391953732eb3e0e455fbcc58d289f7e982b11ab4"
 target = "skills/ponytail-gain"
-cache = ".cache/sources/ponytail/e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156/ponytail-gain"
+cache = ".cache/sources/ponytail/72c17bf6121a53a1d0aa85719944a020bd3a7b8b/ponytail-gain"
 source_is_file = false
 
 [[assets]]
 id = "dietrichgebert/ponytail-help"
 source = "ponytail"
-rev = "e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156"
-export_hash = "635897ced24bc089c70cd190db8f8aaa19ac274636fbe462f286e41e024dd41d"
+rev = "72c17bf6121a53a1d0aa85719944a020bd3a7b8b"
+export_hash = "079bf96c00003835db2a4a9aa50d97dfea625531a7dc1dd5a8e50b01cb2494de"
 target = "skills/ponytail-help"
-cache = ".cache/sources/ponytail/e3ba2aa6f1e6f0bc4d69eb09c9f0d0a93af56156/ponytail-help"
+cache = ".cache/sources/ponytail/72c17bf6121a53a1d0aa85719944a020bd3a7b8b/ponytail-help"
 source_is_file = false
 
 [[assets]]
