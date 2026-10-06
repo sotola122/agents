@@ -39,8 +39,8 @@ ponytailのskillは公式リポジトリをcommit `552acd5efd0aeae2583a12efe3937
 natural-japaneseのskillは公式リポジトリをcommit `9a78a42964096da509b8f3e011f0085a5f080151`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 
-mattpocock/skills は commit `4588b32ecab9ecc9fc8cc6b6c5e7d675b6004b0d` で固定します。
-直前の pin `24fe0ef7737efae15c87225755e9f6f5965e4888` から、登録済み skill の本文は変わっていません。追加されたのは未登録の実験 skill `in-progress/chief-of-staff` だけで、`ask-matt` はそこへ経路を持たないため pin しません。`writing-for-agents` の本文も変わっていません。
+mattpocock/skills は commit `6fd947921b935b7e1e69293a200400f0fdd5c15f` で固定します。
+直前の pin `4588b32ecab9ecc9fc8cc6b6c5e7d675b6004b0d` からの登録済み差分は、`implement` が tdd と code-review を Skill tool で呼ぶこと、`to-tickets` と GitHub tracker の sub-issue 手順、外部 PR 一覧を REST pulls に変えたこと、`handoff` の一時ディレクトリ解決、`claude-handoff` の引用安全な起動です。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
