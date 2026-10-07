@@ -24,8 +24,8 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-Herdrの操作skillは公式リポジトリをcommit `3d9d2b18dab139ba226ebc5a1c9a9f2c9c3ee4df`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `e35f3937b0efe40ec0dab675709c68e1d8e8c9e6` と同一です。進めた差分はセッション保持、サーバ生存、入力とサイドバーで、待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `4f296c295b4a758af8589e46d2d7afb3743a709a`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `3d9d2b18dab139ba226ebc5a1c9a9f2c9c3ee4df` と同一です。進めた差分は Windows の作業ディレクトリとセッション保持、マシン切替時のワークスペース移動、kitty graphics の opt-out、fish のリフロー通知、入力エンコードの libghostty 経由です。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
@@ -39,8 +39,8 @@ ponytailのskillは公式リポジトリをcommit `552acd5efd0aeae2583a12efe3937
 natural-japaneseのskillは公式リポジトリをcommit `9a78a42964096da509b8f3e011f0085a5f080151`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 
-mattpocock/skills は commit `6fd947921b935b7e1e69293a200400f0fdd5c15f` で固定します。
-直前の pin `4588b32ecab9ecc9fc8cc6b6c5e7d675b6004b0d` からの登録済み差分は、`implement` が tdd と code-review を Skill tool で呼ぶこと、`to-tickets` と GitHub tracker の sub-issue 手順、外部 PR 一覧を REST pulls に変えたこと、`handoff` の一時ディレクトリ解決、`claude-handoff` の引用安全な起動です。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
+mattpocock/skills は commit `f3fc5632f401156837ee3872f14fe33ccf1024ea` で固定します。
+直前の pin `6fd947921b935b7e1e69293a200400f0fdd5c15f` からの登録済み差分は、`ask-matt` が skill 本文を先に読むこと、`code-review` の規約検索と foreground sub-agent、`diagnosing-bugs` の強制 red の確認、`implement` の ticket 取得、setup のラベル作成と `glab`/`gh` 修正、`tdd` の seam の得失、`grilling` の yes 受理、`teach` のパスと回答位置、`wayfinder` のラベル・参照・research PR 禁止、wizard template の修正です。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
