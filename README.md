@@ -24,23 +24,23 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-Herdrの操作skillは公式リポジトリをcommit `4f296c295b4a758af8589e46d2d7afb3743a709a`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `3d9d2b18dab139ba226ebc5a1c9a9f2c9c3ee4df` と同一です。進めた差分は Windows の作業ディレクトリとセッション保持、マシン切替時のワークスペース移動、kitty graphics の opt-out、fish のリフロー通知、入力エンコードの libghostty 経由です。待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `dc6b6e5f42831ea7114f34dcf12900680eb36ae0`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `4f296c295b4a758af8589e46d2d7afb3743a709a` と同一です。進めた差分はセッション保存のフラッシュ、macOS 再起動前のセッション保存、Hermes plugin 一覧の構造保持、入力とマウスの修正です。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
 SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
 catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
 
-ponytailのskillは公式リポジトリをcommit `552acd5efd0aeae2583a12efe39373d2f076f25e`で固定して取り込みます。
+ponytailのskillは公式リポジトリをcommit `9b58c1ffb790c075ca32e70a89cf1d80588f4abf`で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
-今回の skill 差分は review/audit の番号付き指摘、gain の agentic 平均への更新、Codex の `$ponytail:<skill>` 起動です。
+今回の skill 差分は Ponytail 5 です。review/audit は過設計だけでなく正しさ・安全・負荷・テスト・速度も見る品質レビューになり、shortcut コメントは `shortcut:`（古い `ponytail:` も読む）です。gain の数字は 39 タスク × 5 回の Opus 5.5 ベンチマークです。
 
 natural-japaneseのskillは公式リポジトリをcommit `9a78a42964096da509b8f3e011f0085a5f080151`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 
-mattpocock/skills は commit `f3fc5632f401156837ee3872f14fe33ccf1024ea` で固定します。
-直前の pin `6fd947921b935b7e1e69293a200400f0fdd5c15f` からの登録済み差分は、`ask-matt` が skill 本文を先に読むこと、`code-review` の規約検索と foreground sub-agent、`diagnosing-bugs` の強制 red の確認、`implement` の ticket 取得、setup のラベル作成と `glab`/`gh` 修正、`tdd` の seam の得失、`grilling` の yes 受理、`teach` のパスと回答位置、`wayfinder` のラベル・参照・research PR 禁止、wizard template の修正です。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
+mattpocock/skills は commit `49dd158d1076134a641b33efb035946536778336` で固定します。
+直前の pin `f3fc5632f401156837ee3872f14fe33ccf1024ea` からの登録済み差分は wizard template のみです。画面クリアの失敗を拾い、dotenv の二重引用を安全に解けないときは聞き直し、`write_env` が変数を設定し、ステージを `run_wizard` に包みます。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。

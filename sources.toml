@@ -11,7 +11,7 @@ hermes = ["codex"]
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"
-rev = "f3fc5632f401156837ee3872f14fe33ccf1024ea"
+rev = "49dd158d1076134a641b33efb035946536778336"
 license = "MIT"
 
 [[sources]]
@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "4f296c295b4a758af8589e46d2d7afb3743a709a"
+rev = "dc6b6e5f42831ea7114f34dcf12900680eb36ae0"
 license = "Apache-2.0"
 
 [[assets]]
@@ -332,7 +332,7 @@ excludes = ["plans", "docs", ".github"]
 [[sources]]
 id = "ponytail"
 url = "https://github.com/DietrichGebert/ponytail.git"
-rev = "552acd5efd0aeae2583a12efe39373d2f076f25e"
+rev = "9b58c1ffb790c075ca32e70a89cf1d80588f4abf"
 license = "MIT"
 
 [[assets]]
