@@ -24,17 +24,17 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-Herdrの操作skillは公式リポジトリをcommit `dc6b6e5f42831ea7114f34dcf12900680eb36ae0`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `4f296c295b4a758af8589e46d2d7afb3743a709a` と同一です。進めた差分はセッション保存のフラッシュ、macOS 再起動前のセッション保存、Hermes plugin 一覧の構造保持、入力とマウスの修正です。待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `212b710b929315044a2c049bbe34b091c82df47d`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `dc6b6e5f42831ea7114f34dcf12900680eb36ae0` と同一です。進めた差分は Codex 起動時の update chooser 検出と preview ドキュメントです。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
 SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
 catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
 
-ponytailのskillは公式リポジトリをcommit `9b58c1ffb790c075ca32e70a89cf1d80588f4abf`で固定して取り込みます。
+ponytailのskillは公式リポジトリをcommit `bb564106a7ba95ec3d50e622193029e0beb4ffeb`で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
-今回の skill 差分は Ponytail 5 です。review/audit は過設計だけでなく正しさ・安全・負荷・テスト・速度も見る品質レビューになり、shortcut コメントは `shortcut:`（古い `ponytail:` も読む）です。gain の数字は 39 タスク × 5 回の Opus 5.5 ベンチマークです。
+直前の pin `9b58c1ffb790c075ca32e70a89cf1d80588f4abf` からの skill 差分は `ponytail-debt` だけです。スキャンは `.gitignore` 対象を除く `git grep --no-index --exclude-standard` になりました。
 
 natural-japaneseのskillは公式リポジトリをcommit `9a78a42964096da509b8f3e011f0085a5f080151`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
