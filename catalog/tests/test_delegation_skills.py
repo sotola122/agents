@@ -177,7 +177,7 @@ class DelegationSkillTests(unittest.TestCase):
 
         source = next(item for item in catalog["sources"] if item["id"] == "ponytail")
         self.assertEqual(source["url"], "https://github.com/DietrichGebert/ponytail.git")
-        self.assertEqual(source["rev"], "bb564106a7ba95ec3d50e622193029e0beb4ffeb")
+        self.assertEqual(source["rev"], "2961b52fc1fe6a5a87c7a959a79512e5c2f3ffe5")
         self.assertEqual(source["license"], "MIT")
 
         expected = (
