@@ -273,6 +273,36 @@ class SyncCliTests(unittest.TestCase):
         self.assertEqual(core._target_for(asset, "hermes"), "skills/anago/demo")
         self.assertEqual(core._target_for(asset, "cursor"), "skills/demo")
 
+    def test_claude_harness_accepts_skills_only(self) -> None:
+        def exercise() -> None:
+            manifest = self.root / "sources.toml"
+            manifest.write_text(
+                manifest.read_text(encoding="utf-8").replace(
+                    '"shared", "hermes"]', '"shared", "hermes", "claude"]'
+                ),
+                encoding="utf-8",
+            )
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            lock = core.load_lock(config, required=True)
+            demo = next(a for a in config.assets if a.id == "fixture/demo")
+            rule = next(a for a in config.assets if a.id == "fixture/rule")
+            self.assertIn("claude", demo.harnesses)
+            self.assertNotIn("claude", rule.harnesses)
+
+            with self.assertRaisesRegex(core.SyncError, "context×claude"):
+                core.plan_changes(config, lock, ("context",), ("claude",))
+
+            lines, operations, pi, applied = core.plan_changes(
+                config, lock, ("skill",), ("claude",)
+            )
+            core.apply_changes(config, operations, pi, applied, kinds=("skill",))
+            skills = self.home / ".claude" / "skills"
+            self.assertTrue((skills / "demo" / "SKILL.md").is_file())
+            self.assertTrue((skills / "standalone" / "SKILL.md").is_file())
+
+        self._run(exercise)
+
     def test_hermes_harness_root_honors_hermes_home(self) -> None:
         hermes_home = self.home / "active-hermes"
         with mock.patch.dict(

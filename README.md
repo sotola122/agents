@@ -54,6 +54,7 @@ domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `C
 - OMP：`~/.omp/`
 - Pi：`~/.pi/agent/`
 - Shared：`~/.agents/skills/`
+- Claude Code：`~/.claude/skills/`（skill のみ）
 - Hermes：`${HERMES_HOME}/skills/anago/`（`HERMES_HOME` 未設定時は `~/.hermes/skills/anago/`）
 
 ## 動作環境
@@ -128,7 +129,8 @@ python -m catalog apply --harness cursor,shared --kind skill
 
 `--kind` には `skill`、`agent`、`context` を指定します。
 
-`--harness` には `cursor`、`opencode`、`omp`、`pi`、`shared`、`hermes` を指定します。
+`--harness` には `cursor`、`opencode`、`omp`、`pi`、`shared`、`hermes`、`claude` を指定します。
+`claude`（Claude Code）は skill だけを配布し、agent と context は対象外です。
 ここでいう `harness` は、配布先となるツールや共通ディレクトリを指します。
 
 指定を省略すると、`sources.toml` の `[apply]` にある `default_kinds` と `default_harnesses` が使われます。

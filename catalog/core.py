@@ -27,7 +27,7 @@ EXECUTABLE_FILE_MODE = 0o755
 
 
 KINDS = ("skill", "agent", "context")
-HARNESSES = ("cursor", "opencode", "omp", "pi", "shared", "hermes")
+HARNESSES = ("cursor", "opencode", "omp", "pi", "shared", "hermes", "claude")
 SUPPORTED: Mapping[str, frozenset[str]] = {
     "skill": frozenset(HARNESSES),
     "agent": frozenset(("cursor", "opencode", "omp")),
@@ -1553,6 +1553,8 @@ def _harness_root(harness: str) -> Path:
         return home / ".pi" / "agent"
     if harness == "shared":
         return home / ".agents"
+    if harness == "claude":
+        return home / ".claude"
     if harness == "hermes":
         override = os.environ.get("HERMES_HOME")
         if override:
@@ -2282,7 +2284,7 @@ def build_parser() -> argparse.ArgumentParser:
     for name in ("diff", "apply"):
         command = subparsers.add_parser(name, help=f"選択した出力を{name}")
         command.add_argument("--kind", help="skill,agent,context（カンマ区切り）")
-        command.add_argument("--harness", help="cursor,opencode,omp,pi,shared")
+        command.add_argument("--harness", help="cursor,opencode,omp,pi,shared,hermes,claude")
         if name == "diff":
             command.add_argument("--output", help="差分 plan の保存先")
     update_parser = subparsers.add_parser(
