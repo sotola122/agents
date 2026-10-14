@@ -82,6 +82,30 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertNotIn("prefer print mode for delegation", text)
         self.assertIn("Only when Herdr was not requested", text)
 
+    def test_claude_herdr_runs_use_an_interactive_pane(self) -> None:
+        text = (ROOT / "skills" / "claude" / "SKILL.md").read_text(
+            encoding="utf-8"
+        )
+        herdr = text.split("## Herdr Runs", 1)[1].split("## Non-Interactive Runs", 1)[0]
+        self.assertIn("harness-sessions", text)
+        self.assertIn("HERDR_ENV=1", herdr)
+        self.assertIn("herdr pane split --current", herdr)
+        self.assertIn('--cwd "$PWD" --no-focus', herdr)
+        self.assertIn(".result.pane.pane_id", herdr)
+        self.assertIn("--kind claude --pane <returned-pane-id> --", herdr)
+        self.assertIn("--session-id <new-uuid>", herdr)
+        self.assertIn("--resume <SESSION_ID>", herdr)
+        self.assertIn("herdr agent prompt", herdr)
+        self.assertIn("--timeout 600000", herdr)
+        self.assertNotIn("120000", herdr)
+        self.assertIn("at least 600000 ms (10 minutes)", herdr)
+        self.assertIn("Timeout alone does not stop the worker", herdr)
+        self.assertIn("herdr agent read", herdr)
+        self.assertIn("Keep `--print`, `-p`", herdr)
+        self.assertLess(herdr.index("herdr pane split"), herdr.index("herdr agent start"))
+        self.assertIn("Only when Herdr was not requested", text)
+        self.assertIn("idle/done alone is not task success", text)
+
     def test_pi_runs_keep_configured_resources_enabled(self) -> None:
         text = (ROOT / "skills" / "pi" / "SKILL.md").read_text(
             encoding="utf-8"
@@ -245,7 +269,7 @@ class DelegationSkillTests(unittest.TestCase):
             source["url"], "https://github.com/coji/natural-japanese.git"
         )
         self.assertEqual(
-            source["rev"], "9a78a42964096da509b8f3e011f0085a5f080151"
+            source["rev"], "74647ae4331e310eb7ac93e3038a133d08be5acd"
         )
         self.assertEqual(source["license"], "MIT")
 

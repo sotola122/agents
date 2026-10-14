@@ -24,8 +24,8 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-Herdrの操作skillは公式リポジトリをcommit `dec3156a6f795450d1b1b634f0a0d5cefd056ee3`で固定して取り込みます。
-直前の pin `212b710b929315044a2c049bbe34b091c82df47d` からの skill 差分は、停止中の identity 保持、`idle`/`done` が未認識の承認やバックグラウンド作業の完了を保証しないこと、`pane run` は投入の受付であること、CLI/API の close が TUI の最終 pane 確認を引き継がないことです。待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `916fcf8de029c6cac965b50f3cdb9687cd7d1537`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `dec3156a6f795450d1b1b634f0a0d5cefd056ee3` と同一です。進めた差分は Windows remote のシェル検出、Codex turn hook の削除、共有 SSH の復旧、v0.9.5 です。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
@@ -36,8 +36,9 @@ ponytailのskillは公式リポジトリをcommit `2961b52fc1fe6a5a87c7a959a7951
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 `skills/` の tree は直前の pin `bb564106a7ba95ec3d50e622193029e0beb4ffeb` と同一です。進めた差分は hook、mode 状態、アンインストールと v5.2.0 のリリースです。
 
-natural-japaneseのskillは公式リポジトリをcommit `9a78a42964096da509b8f3e011f0085a5f080151`で固定して取り込みます。
+natural-japaneseのskillは公式リポジトリをcommit `74647ae4331e310eb7ac93e3038a133d08be5acd`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
+直前の pin `9a78a42964096da509b8f3e011f0085a5f080151` からの差分は、UTF-8 BOM を除いて読むことと、読みやすさレビューの `lint.py` パスをスキル基準に揃えたことです。
 
 mattpocock/skills は commit `49dd158d1076134a641b33efb035946536778336` で固定します。
 直前の pin `f3fc5632f401156837ee3872f14fe33ccf1024ea` からの登録済み差分は wizard template のみです。画面クリアの失敗を拾い、dotenv の二重引用を安全に解けないときは聞き直し、`write_env` が変数を設定し、ステージを `run_wizard` に包みます。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
