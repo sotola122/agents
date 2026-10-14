@@ -1,6 +1,6 @@
 ---
 name: harness-sessions
-description: Preserve and resume workspace-local CLI agent history. Use before dispatch or resume and at checkpoints in big-bang, cursor, codex, and pi.
+description: Preserve and resume workspace-local CLI agent history. Use before dispatch or resume and at checkpoints in big-bang, claude, cursor, codex, and pi.
 ---
 
 # Harness sessions
@@ -9,7 +9,7 @@ Keep native conversations resumable and a small local record that another orches
 
 ## 1. Select the local store
 
-Resolve the absolute target workspace, including the specific worktree. Use that workspace's **calling harness** directory: Hermes uses `<workspace>/.hermes/`, Cursor `.cursor/`, Codex `.codex/`, and Pi `.pi/`. A Hermes task delegated to Cursor therefore keeps its record under `.hermes/`, not under the installed skills directory or the user's global home. Big Bang uses the caller's directory, not a `.big-bang` directory. Reuse the caller-supplied location throughout follow-ups.
+Resolve the absolute target workspace, including the specific worktree. Use that workspace's **calling harness** directory: Hermes uses `<workspace>/.hermes/`, Claude Code `.claude/`, Cursor `.cursor/`, Codex `.codex/`, and Pi `.pi/`. A Hermes task delegated to Cursor therefore keeps its record under `.hermes/`, not under the installed skills directory or the user's global home. Big Bang uses the caller's directory, not a `.big-bang` directory. Reuse the caller-supplied location throughout follow-ups.
 
 Store records under `<harness-dir>/agent-sessions/<worker>/<unique-record>.md`, with evidence or native session files in an adjacent conversation-specific directory when the CLI supports local storage. Choose a filesystem-safe unique record name; do not turn an unvalidated native ID into a path. Keep separate worktrees and remote machines separate. For an SSH worker, record the machine/profile and remote absolute workspace; do not treat identical paths on different machines as the same target. Resolve session files on the recorded host and keep the same explicit machine selector for discovery, resume, and inspection.
 

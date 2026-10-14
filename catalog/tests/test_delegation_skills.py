@@ -7,7 +7,7 @@ import unittest
 
 
 ROOT = Path(__file__).resolve().parents[2]
-PACKAGES = ("pi", "codex", "cursor")
+PACKAGES = ("pi", "codex", "claude", "cursor")
 LINK_RE = re.compile(r"\[[^]]+\]\((?!https?://|#)([^)]+)\)")
 
 

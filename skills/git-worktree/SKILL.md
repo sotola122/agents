@@ -8,7 +8,7 @@ disable-model-invocation: true
 
 Lifecycle only for user-owned linked worktrees: `list` | `create` | `retain` | `remove`.
 
-Return implementation and verification to the caller. Disposable worktrees owned by `pi`, `codex`, or `cursor` delegation are out of scope; stop on those paths at every entry.
+Return implementation and verification to the caller. Disposable worktrees owned by `pi`, `codex`, `claude`, or `cursor` delegation are out of scope; stop on those paths at every entry.
 
 Report lifecycle results only. Prose-norm skills stay unused.
 

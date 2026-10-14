@@ -63,6 +63,7 @@
 [skills]
 big-bang = true
 config-catalog = false
+claude = true
 codex = true
 cursor = true
 design-docs = true

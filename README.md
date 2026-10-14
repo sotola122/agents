@@ -13,9 +13,9 @@ agent、AGENTS.md、skillsを一か所で管理し、Cursor や OpenCode など�
 - `agents/`：このリポジトリで直接管理するエージェント向けプロンプト
 - `context/`：このリポジトリで直接管理する、各ツールで共有する指示
 
-Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/cursor`）を管理する。
+Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/claude`、`skills/cursor`）を管理する。
 各 harness skill は単一の `SKILL.md` で CLI の起動、権限、workspace、入出力、検証、native session の再開を扱い、task prompt、review lens は同梱しない。
-`big-bang`・`cursor`・`codex`・`pi` を配布するときは、共通の履歴管理を担う `harness-sessions` も有効にします。
+`big-bang`・`claude`・`cursor`・`codex`・`pi` を配布するときは、共通の履歴管理を担う `harness-sessions` も有効にします。
 履歴は対象 workspace 内の呼び出し元 harness directory に保存します（例: `.hermes/agent-sessions/cursor/`）。
 同じ directory の `.gitignore` で `/agent-sessions/` を除外し、native session ID、決定事項、検証結果、次の作業を残します。
 Big Bang の初回・継続待機は10分以上とし、タイムアウト後は状態を確認して待機継続・助言・中断を判断します。
@@ -160,6 +160,7 @@ default_harnesses = ["cursor"]
 [skills]
 pi = true
 codex = true
+claude = true
 cursor = true
 ```
 
@@ -270,6 +271,7 @@ python -m catalog update --source example-skills
 [skills]
 pi = true
 codex = true
+claude = true
 cursor = true
 ```
 
