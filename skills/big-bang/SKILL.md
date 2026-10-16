@@ -12,9 +12,9 @@ Activate only when the user invokes `/big-bang` or explicitly requests this work
 
 For delegated work, load `herdr`, `cursor`, and [harness-sessions](../harness-sessions/SKILL.md). Herdr and Cursor own CLI syntax, readiness, permissions, and pane safety; harness-sessions owns local history and continuity. Verify Herdr caller context before controlling any pane. Outside Herdr, ask the user to launch Hermes inside it before delegation. Prose-only work stays with Astra and needs no Cursor readiness check or pane.
 
-Astra owns scope, acceptance criteria, dispatch, user decisions, evidence checks, and prose drafting/editing (including documentation, articles, and skills). Cursor owns exploration, research, detailed technical design, code/configuration edits, tests, and repairs. For writing tasks, delegate substantial fact gathering to Cursor when needed, then let Astra read the relevant sources and author the prose. Otherwise limit Astra's repository reads to dispatch context and targeted verification. Delegate to Cursor rather than spawning more Hermes agents.
+Astra owns scope, acceptance criteria, dispatch, user decisions, evidence checks, and prose drafting/editing (including documentation, articles, and skills). Cursor owns exploration, research, detailed technical design, code/configuration edits, tests, and repairs. For writing tasks, delegate substantial fact gathering to Cursor when needed, then let Astra read the relevant sources and author the prose. Otherwise limit Astra's repository reads to dispatch context and targeted verification. Delegate to Cursor rather than spawning more Hermes agents. Apply the orchestrator budget in harness-sessions: Astra's own tools cover dispatch, Herdr control, reading Cursor's summary, and the record; start a fresh Astra session per task rather than reusing multi-day sessions.
 
-Resolve the absolute target directory and checkable completion criteria. Capture existing Git status and content-level changes before writes. Select the calling harness's workspace-local history (for Hermes, `<workspace>/.hermes/agent-sessions/cursor/`) and verify its `.gitignore` before recording. Read matching history and choose a live agent, explicit native session, or new conversation. Astra owns this record; Cursor supplies results rather than writing a competing history. Delegate discovery rather than exploring the repository to prepare a detailed plan.
+Resolve the absolute target directory and checkable completion criteria. Have Cursor capture the Git baseline (status and content-level changes) before writes. Select the calling harness's workspace-local history (for Hermes, `<workspace>/.hermes/agent-sessions/cursor/`) and verify its `.gitignore` before recording. Read matching history and choose a live agent, explicit native session, or new conversation. Astra owns this record; Cursor supplies results rather than writing a competing history. Delegate discovery rather than exploring the repository to prepare a detailed plan.
 
 Completion: each work unit has an owner, target, acceptance criteria, and authorized scope. For prose-only work, Astra writes and verifies the artifact directly; use the remaining steps for Cursor work units.
 
@@ -39,7 +39,7 @@ herdr agent prompt <unique-name> '<task>' --wait --timeout 600000
 
 Follow the `cursor` skill's permission rules and record the native ID, live Herdr handles, model, and workspace. If a new conversation's ID is only available after startup, omit `--resume` for that initial launch and replace the history's pending ID as soon as observed. Add `--force` only for authorized writable work. Keep Big Bang in the visible interactive TUI: `--print`, `-p`, print-only output flags, and logging pipelines are headless routes. Wait for interactive readiness before prompting. Quote task text and paths as shell arguments. If interactive startup fails, inspect and report the blocker; do not silently switch execution modes.
 
-Give the worker the complete work unit: request, relevant paths and skill references, acceptance criteria, existing user changes, authorization boundaries, and expected evidence. Request a concise result with changed paths, test commands/results, blockers, and conversation ID when available. Delegate discovery through verification together rather than dispatching individual commands.
+Give the worker the complete work unit: request, relevant paths and skill references, acceptance criteria, existing user changes, authorization boundaries, and expected evidence. Request a compact result (a few lines of JSON or bullets) with changed paths, test commands and exit codes, blockers, conversation ID, and a short summary. Delegate discovery through verification together rather than dispatching individual commands.
 
 Completion: Cursor's interactive TUI is running in the returned pane, and Herdr has observed activity after the work unit was submitted.
 
@@ -53,7 +53,7 @@ herdr agent get <unique-name>
 herdr agent read <unique-name> --source recent-unwrapped --lines 120
 ```
 
-If the outer terminal tool has a shorter wait limit, run the Herdr wait in the background and poll that command using the tool's supported process handle. Keep the worker and the logical ten-minute wait alive; a tool yield or connection timeout is not a worker failure. Give progress updates while supervising.
+Run the long prompt `--wait` and every Herdr wait via `terminal(background=true, notify_on_complete=true)` from the start; never run them in the foreground under a shorter tool timeout, and do not poll in between. Wake on the completion notification. Keep the worker and the logical ten-minute wait alive; a tool yield or connection timeout is not a worker failure. Give progress updates while supervising.
 
 After a timeout, stalled submission, blocked state, or lost connection, inspect state and recent output and compare with the previous checkpoint before choosing:
 
@@ -66,7 +66,7 @@ After a timeout, stalled submission, blocked state, or lost connection, inspect 
 | Unknown state or connection failure | Reacquire state and output, confirm delivery and process identity, then decide. Do not infer failure or resubmit from a lost response. |
 | Explicit stop request, unrecoverable failure, or harmful/wrong work that cannot be corrected in place | Preserve results and history, explain the reason, then interrupt only the owned worker as warranted. |
 
-Timeout alone never warrants `ctrl+c`, process termination, pane closure, or duplicate submission. Record the observed state, progress, advice, and chosen next action in the session history. If alternate-screen output is missing, follow the `herdr` skill's temporary-file fallback.
+Timeout alone never warrants `ctrl+c`, process termination, pane closure, or duplicate submission. Record only real blockers, advice, or interruptions in the session history. If alternate-screen output is missing, follow the `herdr` skill's temporary-file fallback.
 
 Send repairs and follow-ups with `herdr agent prompt` to the same live agent once it is ready. On restart, resume the explicit Cursor conversation ID selected from local history. If native resumption is unavailable, follow the documented summary-based reconstruction path and retain the predecessor record.
 
@@ -76,7 +76,7 @@ Completion: Cursor has finished the turn with evidence for every criterion, or a
 
 ## 4. Verify and close
 
-Check Cursor's completed response, changed-file scope and targeted diff against the baseline, and raw relevant test output/exit status. Do not equate the Herdr command's exit code with Cursor task success; the interactive process stays alive between turns. Read back the exact target after external writes. Ask Cursor to obtain missing evidence or repair failures rather than redoing its investigation. Add a separate Cursor review when requested or warranted by risk, not automatically for trivial changes.
+Check Cursor's compact result: changed paths against the baseline, test commands and exit codes. Spot-check only when risk warrants (e.g. `git status --short` or one `git diff --stat`); do not re-read full output or files Cursor already verified. Do not equate the Herdr command's exit code with Cursor task success; the interactive process stays alive between turns. Read back the exact target after external writes. Ask Cursor to obtain missing evidence or repair failures rather than redoing its investigation. Add a separate Cursor review when requested or warranted by risk, not automatically for trivial changes.
 
 Finish only when every acceptance criterion is verified; otherwise name incomplete checks. Report results, evidence, model, workspace, and blockers concisely in the user's language. Claim token savings only when measured.
 

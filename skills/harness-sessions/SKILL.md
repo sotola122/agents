@@ -1,11 +1,13 @@
 ---
 name: harness-sessions
-description: Preserve and resume workspace-local CLI agent history. Use before dispatch or resume and at checkpoints in big-bang, claude, cursor, codex, and pi.
+description: Preserve and resume workspace-local CLI agent history and set the orchestrator budget. Use at dispatch, resume, and completion in big-bang, claude, cursor, codex, and pi.
 ---
 
 # Harness sessions
 
 Keep native conversations resumable and a small local record that another orchestrator can use after its own context is lost. The calling CLI skill owns native session syntax; this skill owns storage, selection, and checkpoints. The orchestrator writes history; workers return evidence. Use one record per worker conversation, with one writer.
+
+**Orchestrator budget.** The orchestrator (e.g. Hermes) limits its own tool use to dispatch, Herdr/process control, reading worker summaries, and these records. Delegate exploration, file reading, editing, and testing to the worker, and have it return a compact result (changed paths, test commands with exit codes, blockers, native session ID, short summary). Start a fresh orchestrator session, or compact, per task instead of reusing multi-day sessions; the record carries continuity. Worker native sessions may still be resumed for follow-ups.
 
 ## 1. Select the local store
 
@@ -37,21 +39,21 @@ Reapply the current request's scope and permissions on resume. Historical notes 
 
 Completion: a live conversation, explicit resumable session, or documented reconstruction is selected for this task.
 
-## 3. Record checkpoints
+## 3. Record dispatch and completion
 
 Create the record at dispatch, even if the native ID is initially `pending`. Fill in the ID from actual CLI output, session metadata, or a supported session command as soon as available; use `unavailable` with a reason rather than inventing one. Keep credentials, tokens, secret-bearing prompts, and private keys out of the record.
 
-Keep a current summary followed by timestamped checkpoints. Include:
+Keep it short: a current summary plus brief timestamped entries. Include:
 
-- Task, acceptance criteria, current authorized scope, calling harness, and record owner.
+- Task, acceptance criteria, authorized scope, calling harness, and record owner.
 - Machine, absolute workspace/worktree, branch and HEAD when available.
 - Worker CLI/version, provider/model, native session ID/file, and verified resume method.
 - Optional live Herdr machine/session, agent name and pane ID; mark stale handles after exit.
-- Decisions and useful findings, changed paths, verification commands/results, and retained evidence paths.
-- State (`running`, `blocked`, `completed`, `interrupted`, or `failed`), last observed progress, blockers, and next action.
+- Key decisions, changed paths, verification commands/exit codes (from the worker's result), and retained evidence paths.
+- State (`running`, `blocked`, `completed`, `interrupted`, or `failed`), blockers, and next action.
 
-Update after a completed turn, a material decision, a timeout inspection, advice, a blocker, and before handoff, interruption, or pane cleanup. Record a wait timeout as an observation; keep `running` if the worker is still working. On completion, retain the record and native session for future follow-ups; pane cleanup does not delete history.
+Write at dispatch and at completion or handoff; add an entry only for a real blocker, a material decision, an interruption, or before pane cleanup. Not every turn or wait timeout needs one; a timeout with the worker still working stays `running`. On completion, retain the record and native session for follow-ups; pane cleanup does not delete history.
 
-For long tasks, checkpoint meaningful progress without copying full transcripts. Evidence needed after a temporary worktree is removed must be retained in the calling workspace before cleanup. Recheck Git exclusion before handoff and report the absolute record path with any continuity limitation.
+Do not copy transcripts or full worker output. Evidence needed after a temporary worktree is removed must be retained in the calling workspace before cleanup. Recheck Git exclusion before handoff and report the absolute record path with any continuity limitation.
 
 Completion: another orchestrator can identify the session, understand the last verified state, and continue without rediscovering the work.

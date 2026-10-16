@@ -7,7 +7,7 @@ description: Run or resume Codex CLI for delegated implementation, review, verif
 
 Operate Codex non-interactively through Hermes `terminal` and `process` tools. Task content comes from the current user request; this skill defines only CLI execution and safety.
 
-Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to codex); use workspace-local `.codex` when codex itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to codex); use workspace-local `.codex` when codex itself is the caller. Write the caller-owned record at dispatch and at completion/handoff (plus real blockers), not every turn. Follow the orchestrator budget in harness-sessions: the worker explores, reads, edits, and tests; the orchestrator dispatches, waits, and reads the worker's summary.
 
 ## Readiness
 
@@ -87,7 +87,7 @@ For a matching prior task, run `codex exec resume <SESSION_ID> '<follow-up>'` fr
 
 Record standalone `codex review` results as history even if that command exposes no resumable ID; mark native resumption unavailable instead of fabricating an ID. A follow-up can receive that recorded review as context in `exec`.
 
-For long work, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. Treat tool wait expiration as a reason to inspect progress, not to kill or relaunch the worker. Record the outcome and next action before handoff.
+For long work, use `terminal(background=true, notify_on_complete=true)` and inspect it with `process`. Wake on the completion notification instead of polling; treat tool wait expiration as a reason to inspect progress, not to kill or relaunch the worker. Record the outcome and next action at handoff.
 
 Interactive Codex requires `pty=true`; prefer `exec` or `review` for delegation.
 
@@ -95,17 +95,17 @@ Interactive Codex requires `pty=true`; prefer `exec` or `review` for delegation.
 
 Set both Hermes `workdir` and Codex `-C` to the resolved absolute workspace. Treat `workspace-write`, hooks, formatters, tests, and build commands as writable.
 
-Before a writable run, capture `git status --short` plus content-level diffs/hashes. A worktree based on `HEAD` omits dirty tracked and untracked state; reproduce and hash-verify that state before delegating against the worktree.
+For writable runs, the worker captures the baseline (`git status --short`, content diffs/hashes) before editing and reports its diff and tests afterward. A worktree based on `HEAD` omits dirty tracked and untracked state; have the worker reproduce and hash-verify that state before using the worktree, or run in place with explicit side-effect monitoring.
 
 Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
-After every run:
+Ask the worker to return a compact result (a few lines of JSON or bullets): changed paths, test commands with exit codes, blockers, native session ID, and a short summary. After every run:
 
-1. Check exit status and retain Codex's actual stdout/stderr.
+1. Check exit status and retain Codex's actual final message.
 2. For JSONL, confirm the stream reaches a terminal success event.
-3. For writable runs, inspect repository status, content diff, and relevant tests.
+3. Verify from the worker's compact result and exit codes. Spot-check only when risk warrants (for example `git status --short` or one `git diff --stat`); do not re-read full output or files the worker already verified. Ask the worker to fetch missing evidence.
 4. Report model, sandbox, workspace, and any incomplete checks.
 
 Completion: process success, requested evidence, workspace side effects, and a saved continuity record are accounted for.

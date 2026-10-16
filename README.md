@@ -24,6 +24,10 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
+`summary` は `/summary` で現在の会話を引き継ぎ用の要約にまとめ、新しいセッション・別 harness・分岐先の agent が作業を継続できるようにします（保存先は OS の一時ディレクトリ）。
+長くなった orchestrator セッションのトークン消費を抑えるため、タスクの区切りで要約して新しいセッションに切り替えます。
+有効にするには `assets.local.toml` の `[skills]` に `summary = true` を追加します。
+
 Herdrの操作skillは公式リポジトリをcommit `143bf5fd4781d164260c63fe28e7dc08054ad32f`で固定して取り込みます。
 `skills/herdr` の tree は直前の pin `916fcf8de029c6cac965b50f3cdb9687cd7d1537` と同一です。進めた差分はゼロサイズ grid のポーリング継続、macOS で端末終了後もサーバを残すこと、リンク付きカーソル移動のクラッシュ修正、Windows OpenSSH 経由の POSIX スクリプト保持です。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。

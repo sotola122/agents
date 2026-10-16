@@ -7,7 +7,7 @@ description: Run or resume Claude Code CLI in Herdr panes or non-interactively f
 
 Operate Claude Code as a child coding agent through Herdr when explicitly requested, otherwise through Hermes `terminal` and `process` tools. Task content comes from the current user request; this skill defines only CLI execution and safety.
 
-Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to claude); use workspace-local `.claude` when Claude Code itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to claude); use workspace-local `.claude` when Claude Code itself is the caller. Write the caller-owned record at dispatch and at completion/handoff (plus real blockers), not every turn. Follow the orchestrator budget in harness-sessions: the worker explores, reads, edits, and tests; the orchestrator dispatches, waits, and reads the worker's summary.
 
 ## Readiness
 
@@ -37,7 +37,7 @@ Read `<returned-pane-id>` from `.result.pane.pane_id`; `agent start` does not cr
 
 For follow-ups, prompt the same verified live agent. To restart a recorded conversation, replace `--session-id <new-uuid>` with `--resume <SESSION_ID>` after `--` in `agent start`, using the recorded cwd and current permission flags. Herdr names and pane IDs locate the live worker; they do not replace Claude's native session ID. Verify the ID from Herdr session metadata when available, otherwise from supported Claude session metadata.
 
-Allow at least 600000 ms (10 minutes) for each completion wait, including every continued `herdr agent wait <unique-name> --timeout 600000`. On a blocked, stalled, or timed-out wait, inspect `herdr agent get` and `herdr agent read`, then continue, advise, or interrupt from that evidence. Timeout alone does not stop the worker, close the pane, or resubmit, and it does not switch the run to print mode. A completed turn leaves Claude Code running for further interaction; process exit is not required to prove completion.
+Allow at least 600000 ms (10 minutes) for each completion wait, including every continued `herdr agent wait <unique-name> --timeout 600000`. Run the long `herdr agent prompt ... --wait --timeout 600000` and every `herdr agent wait <unique-name> --timeout 600000` via `terminal(background=true, notify_on_complete=true)` from the start; never run them in the foreground under a shorter tool timeout, and do not poll in between. Wake on the completion notification. On a blocked, stalled, or timed-out wait, inspect `herdr agent get` and `herdr agent read`, then continue, advise, or interrupt from that evidence. Timeout alone does not stop the worker, close the pane, or resubmit, and it does not switch the run to print mode. A completed turn leaves Claude Code running for further interaction; process exit is not required to prove completion.
 
 ## Non-Interactive Runs
 
@@ -119,7 +119,7 @@ terminal(command="claude --print --resume <SESSION_ID> --output-format json <per
 
 Confirm the returned `session_id` equals the recorded one. For Herdr, use the live-agent or explicit-resume procedure above. Add `--fork-session` only to branch a conversation deliberately, then record the new ID with its predecessor. Avoid `--continue` and the interactive `--resume` picker. Reserve the print-only `--no-session-persistence` for disposable smoke checks or an explicit no-history request. If the session cannot be resumed, follow harness-sessions to reconstruct context in a new session.
 
-For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use `agent wait`, `agent get`, and `agent read` in the existing pane; use an outer background/process handle when needed to keep long waits alive. Treat tool wait expiration as a reason to inspect progress, not to kill or relaunch the worker. Record the outcome and next action before handoff.
+For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use the background `agent wait` above, then `agent get` and `agent read` in the existing pane. Treat tool wait expiration as a reason to inspect progress, not to kill or relaunch the worker. Record the outcome and next action before handoff.
 
 Interactive Claude Code outside Herdr requires `terminal(background=true, pty=true)`; this is not a substitute for a requested Herdr pane. The CLI's own `--bg` sessions are managed by `claude agents`, `logs`, and `stop`, outside the Herdr and `terminal`/`process` lifecycles.
 
@@ -127,18 +127,18 @@ Interactive Claude Code outside Herdr requires `terminal(background=true, pty=tr
 
 Set the Herdr pane cwd or Hermes `workdir` to the resolved absolute workspace. Treat hooks, formatters, tests, build commands, and `--worktree` as writable side effects.
 
-Before a writable run, capture `git status --short` plus content-level diffs/hashes. A worktree based on `HEAD` omits dirty tracked and untracked state; reproduce and hash-verify that state before delegating against the worktree.
+For writable runs, the worker captures the baseline (`git status --short`, content diffs/hashes) before editing and reports its diff and tests afterward. A worktree based on `HEAD` omits dirty tracked and untracked state; have the worker reproduce and hash-verify that state before using the worktree, or run in place with explicit side-effect monitoring.
 
 Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
-After every run:
+Ask the worker to return a compact result (a few lines of JSON or bullets): changed paths, test commands with exit codes, blockers, native session ID, and a short summary. After every run:
 
-1. For non-interactive runs, check the exit status; for JSON output confirm `is_error` is false and `subtype` is `success`, and for stream-json confirm a terminal `result` event. For Herdr runs, verify the returned pane hosts Claude Code and the submitted turn completed, then read its actual response; `blocked` or `unknown` is not completion, and idle/done alone is not task success.
-2. Inspect `permission_denials` in print JSON, or denied and pending tool calls in the Herdr transcript: a denial means part of the task did not run, even when the result text sounds complete.
+1. For non-interactive runs, check the exit status; for JSON output confirm `is_error` is false and `subtype` is `success`, and for stream-json confirm a terminal `result` event. For Herdr runs, verify the pane hosts Claude Code and the turn completed, then read its result; `blocked` or `unknown` is not completion, and idle/done alone is not task success.
+2. Check `permission_denials` in print JSON, or denied and pending tool calls reported in the Herdr result: a denial means part of the task did not run, even when the result text sounds complete.
 3. Retain Claude Code's actual output; do not replace a failed run with an unannounced local answer.
-4. For writable runs, inspect repository status, content diff, and relevant tests.
+4. Verify from the worker's compact result and exit codes. Spot-check only when risk warrants (for example `git status --short` or one `git diff --stat`); do not re-read full output or files the worker already verified. Ask the worker to fetch missing evidence.
 5. Report model, permission mode, tools, workspace, cost when exposed by the selected route, and any incomplete checks.
 
 Completion: process success (non-interactive) or verified turn completion in the Claude Code pane (Herdr), requested evidence, workspace side effects, and a saved continuity record are accounted for.

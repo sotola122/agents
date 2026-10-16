@@ -7,7 +7,7 @@ description: Run or resume Cursor Agent CLI for delegated coding, inspection, or
 
 Operate Cursor Agent through an interactive Herdr TUI for Big Bang or user-visible pane work; use non-interactive runs only for explicitly headless tasks and bounded smoke checks. Keep task content in the current request; this skill covers only CLI behavior, permissions, workspaces, and verification.
 
-Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to cursor); use workspace-local `.cursor` when cursor itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to cursor); use workspace-local `.cursor` when cursor itself is the caller. Write the caller-owned record at dispatch and at completion/handoff (plus real blockers), not every turn. Follow the orchestrator budget in harness-sessions: the worker explores, reads, edits, and tests; the orchestrator dispatches, waits, and reads the worker's summary.
 
 ## Readiness
 
@@ -32,7 +32,7 @@ herdr agent prompt <unique-name> '<task>' --wait --timeout 600000
 
 Resolve the explicit chat ID through the session procedure below before startup. Apply the permission and read-only mode rules below to native arguments. `--trust` is a headless option; inspect any interactive trust UI under the current authorization. Keep print-only flags off the TUI route. Inspect blocked or stalled runs before sending more input; never silently fall back to headless execution. Send follow-ups to the same live agent. The TUI exposes only what Cursor itself displays.
 
-In Big Bang, follow its supervision decisions. For other pane work, likewise allow at least 600000 ms per completion wait, inspect `herdr agent get` and `herdr agent read` on timeout, then continue, advise, or interrupt based on evidence. Timeout alone does not authorize stopping the worker, closing the pane, or resubmitting. Use an outer background/process handle when necessary to keep long waits alive.
+In Big Bang, follow its supervision decisions. For other pane work, likewise allow at least 600000 ms per completion wait, inspect `herdr agent get` and `herdr agent read` on timeout, then continue, advise, or interrupt based on evidence. Timeout alone does not authorize stopping the worker, closing the pane, or resubmitting. Run the long `herdr agent prompt ... --wait --timeout 600000` and every `herdr agent wait <unique-name> --timeout 600000` via `terminal(background=true, notify_on_complete=true)` from the start; never run them in the foreground under a shorter tool timeout, and do not poll in between. Wake on the completion notification.
 
 ## Non-Interactive Runs
 
@@ -112,15 +112,15 @@ For a long bounded headless run, use `terminal(background=true, notify=true)` an
 
 ## Workspace Safety
 
-Capture `git status --short` plus content-level diffs/hashes before writable runs, and compare them afterward. Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
+For writable runs, the worker captures `git status --short` plus content-level diffs/hashes before editing and reports the comparison afterward. Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
-After every run:
+Ask the worker to return a compact result (a few lines of JSON or bullets): changed paths, test commands with exit codes, blockers, native session ID, and a short summary. After every run:
 
-1. For headless runs, check process exit status and retain actual stdout/stderr. For interactive runs, inspect the completed response through Herdr; idle/done alone is not task success, and the process need not exit.
+1. For headless runs, check process exit status and retain actual stdout/stderr. For interactive runs, read the completed response through Herdr; idle/done alone is not task success, and the process need not exit.
 2. When using headless JSON output, confirm a terminal completion event.
-3. For writable runs, inspect repository status, content diff, and relevant tests.
+3. Verify from the worker's compact result and exit codes. Spot-check only when risk warrants (for example `git status --short` or one `git diff --stat`); do not re-read full output or files the worker already verified. Ask the worker to fetch missing evidence.
 4. Report model, mode, sandbox, workspace, and any incomplete checks.
 
 Completion: the requested outcome and workspace side effects are verified, and local history identifies the conversation and its last verified state. For an interactive run, the worker can remain alive.

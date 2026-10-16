@@ -7,7 +7,7 @@ description: Run or resume Pi CLI for delegated coding, inspection, verification
 
 Operate Pi as a child coding agent through Herdr when explicitly requested, otherwise through Hermes `terminal` and `process` tools. Keep this skill about executable CLI behavior; task content comes from the current user request.
 
-Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to pi); use workspace-local `.pi` when pi itself is the caller. Keep normal conversations persistent and checkpoint the caller-owned record after each turn or blocker.
+Before ordinary work, load [harness-sessions](../harness-sessions/SKILL.md) to select and protect local history. Use the calling harness directory (for example `.hermes` when Hermes delegates to pi); use workspace-local `.pi` when pi itself is the caller. Write the caller-owned record at dispatch and at completion/handoff (plus real blockers), not every turn. Follow the orchestrator budget in harness-sessions: the worker explores, reads, edits, and tests; the orchestrator dispatches, waits, and reads the worker's summary.
 
 ## Readiness
 
@@ -37,7 +37,7 @@ herdr agent read <unique-name> --source recent-unwrapped --lines 120
 
 Read `<returned-pane-id>` from `.result.pane.pane_id` in the split response; `agent start` does not create a pane. Resolve the history directory and permission flags below before starting. Start Pi without an initial task argument, wait for interactive readiness, then submit the task with `agent prompt`. Do not pass `--print`, `-p`, `--mode json`, or `--mode rpc`: Herdr needs the interactive Pi UI, not a process-and-exit invocation. Herdr supplies the pane's PTY; `terminal(pty=true)` alone does not create a Herdr pane.
 
-For follow-ups, prompt the existing agent. To restart a recorded conversation, pass its explicit `--session <absolute-file>` after `--` in `agent start`. Allow at least 600000 ms (10 minutes) for each completion wait, including the initial prompt and every continued wait. On a blocked, stalled, or timed-out wait, inspect `herdr agent get` and `herdr agent read`, then continue, advise, or interrupt from that evidence. Timeout alone does not stop the worker, close the pane, or resubmit, and it does not switch the run to print mode. A completed turn leaves Pi running for further interaction; process exit is not required to prove completion.
+For follow-ups, prompt the existing agent. To restart a recorded conversation, pass its explicit `--session <absolute-file>` after `--` in `agent start`. Allow at least 600000 ms (10 minutes) for each completion wait, including the initial prompt and every continued wait. Run the long `herdr agent prompt ... --wait --timeout 600000` and every `herdr agent wait <unique-name> --timeout 600000` via `terminal(background=true, notify_on_complete=true)` from the start; never run them in the foreground under a shorter tool timeout, and do not poll in between. Wake on the completion notification. On a blocked, stalled, or timed-out wait, inspect `herdr agent get` and `herdr agent read`, then continue, advise, or interrupt from that evidence. Timeout alone does not stop the worker, close the pane, or resubmit, and it does not switch the run to print mode. A completed turn leaves Pi running for further interaction; process exit is not required to prove completion.
 
 ## Non-Interactive Runs
 
@@ -103,21 +103,21 @@ This is a non-interactive example, not a Herdr launch command. Pi sends supporte
 
 Capture the actual native session file/ID from session output or metadata, verify its workspace, and save it in the caller-owned record. Prefer the explicit absolute session file for a follow-up, retaining `--session-dir`, permission flags, enabled resources, and the target workdir. Avoid `--continue` or an implicit resume picker when selecting a recorded conversation. Native session contents belong to Pi; append progress only to the separate history record. If the native file is unavailable, use the reconstruction path in harness-sessions.
 
-For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use `agent wait`, `agent get`, and `agent read` in the existing pane, with at least 600000 ms per completion wait. A tool wait timeout calls for state and progress inspection, then a continue, advise, or interrupt decision. Timeout alone does not stop the worker or submit the task again. Interactive Pi outside Herdr requires `terminal(background=true, pty=true)`; this is not a substitute for a requested Herdr pane.
+For long non-interactive work, use `terminal(background=true, notify=true)` and inspect it with `process`. For Herdr work, use the background `agent wait` above, then `agent get` and `agent read` in the existing pane. A tool wait timeout calls for state and progress inspection, then a continue, advise, or interrupt decision. Timeout alone does not stop the worker or submit the task again. Interactive Pi outside Herdr requires `terminal(background=true, pty=true)`; this is not a substitute for a requested Herdr pane.
 
 ## Workspace Safety
 
-Capture `git status --short` and content-level diffs/hashes before writable runs. A worktree created from `HEAD` omits dirty tracked and untracked state; materialize and hash-verify that state before testing it elsewhere, or run in place with explicit side-effect monitoring.
+For writable runs, the worker captures the baseline (`git status --short`, content diffs/hashes) before editing and reports its diff and tests afterward. A worktree based on `HEAD` omits dirty tracked and untracked state; have the worker reproduce and hash-verify that state before using the worktree, or run in place with explicit side-effect monitoring.
 
 Keep commits, pushes, PR creation, and credential access within the user's authorized scope. Reuse existing authorization; ask only when an action extends it.
 
 ## Verification
 
-After every run:
+Ask the worker to return a compact result (a few lines of JSON or bullets): changed paths, test commands with exit codes, blockers, native session ID, and a short summary. After every run:
 
-1. For non-interactive runs, check the process exit code and required terminal event when using JSON mode. For Herdr runs, verify the returned pane hosts Pi and the submitted turn completed, then read its actual output; `blocked` or `unknown` is not completion.
+1. For non-interactive runs, check the exit code and required terminal event in JSON mode. For Herdr runs, verify the pane hosts Pi and the turn completed, then read its result; `blocked` or `unknown` is not completion.
 2. Preserve Pi's actual output; do not replace a failed run with an unannounced local answer.
-3. For writable runs, inspect `git status --short`, the content diff, and relevant tests.
+3. Verify from the worker's compact result and exit codes. Spot-check only when risk warrants (for example `git status --short` or one `git diff --stat`); do not re-read full output or files the worker already verified. Ask the worker to fetch missing evidence.
 4. Report the exact provider/model and any incomplete checks.
 
 Completion: process success (non-interactive) or verified turn completion in the Pi pane (Herdr), requested evidence, workspace side effects, and a saved continuity record are all accounted for.
