@@ -36,13 +36,13 @@ unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6
 SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
 catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
 
-ponytailのskillは公式リポジトリをcommit `84740e3d344b69b4a133201fa519eb37a62a2b2a`で固定して取り込みます。
+ponytailのskillは公式リポジトリをcommit `09c434ab73ca43761c5d8b0c5d341926c2fba710`で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
-直前の pin `2961b52fc1fe6a5a87c7a959a79512e5c2f3ffe5` からの skill 差分は、一回限りの `ponytail-debt` と `ponytail-gain` から誤解を招く revert 指示を外したことです。
+直前の pin `84740e3d344b69b4a133201fa519eb37a62a2b2a` からの skill 差分は、`ponytail` の argument-hint に `off` を足したことと、`ponytail-help` に Claude Code の band 操作を足したことです。
 
-natural-japaneseのskillは公式リポジトリをcommit `b251b9bdbc95cf5dc3099e69f8a4dbdccf96d91c`で固定して取り込みます。
+natural-japaneseのskillは公式リポジトリをcommit `03bc944a0c4a9f0b2a66eab065b30de5c529bf08`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
-直前の pin `74647ae4331e310eb7ac93e3038a133d08be5acd` からの差分は、lint の誤検出を減らしたことと、`writing-constitution.md` を `writing-principles.md` に改名して用語をふだんの日本語に揃えたことです。
+直前の pin `b251b9bdbc95cf5dc3099e69f8a4dbdccf96d91c` からの差分は v1.6.0 の作り直しです。参照は diagnose、manual-checklist、文書タイプ5種に絞り、lint は指摘ごとの直し方と段落ごとの確かめを出し、`newfacts.py` と `paragraphs.py` を追加しました。
 
 mattpocock/skills は commit `49dd158d1076134a641b33efb035946536778336` で固定します。
 直前の pin `f3fc5632f401156837ee3872f14fe33ccf1024ea` からの登録済み差分は wizard template のみです。画面クリアの失敗を拾い、dotenv の二重引用を安全に解けないときは聞き直し、`write_env` が変数を設定し、ステージを `run_wizard` に包みます。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。

@@ -332,7 +332,7 @@ excludes = ["plans", "docs", ".github"]
 [[sources]]
 id = "ponytail"
 url = "https://github.com/DietrichGebert/ponytail.git"
-rev = "84740e3d344b69b4a133201fa519eb37a62a2b2a"
+rev = "09c434ab73ca43761c5d8b0c5d341926c2fba710"
 license = "MIT"
 
 [[assets]]
@@ -380,7 +380,7 @@ target = "skills/ponytail-help"
 [[sources]]
 id = "natural-japanese"
 url = "https://github.com/coji/natural-japanese.git"
-rev = "b251b9bdbc95cf5dc3099e69f8a4dbdccf96d91c"
+rev = "03bc944a0c4a9f0b2a66eab065b30de5c529bf08"
 license = "MIT"
 
 [[assets]]
