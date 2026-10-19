@@ -28,6 +28,7 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 スキル本文・補足資料・コード内の説明は英語にし、調査結果・調査マップ・HTMLレポートは日本語で出力します。引用原文は保持し、日本語訳を添えます。
 調査資料は作業プロジェクト内の `.research/<topic>/` に保存します。`/deepsearch <topic>` で原典をたどる調査、`/deepsearch watch <topic>` で登録したRSS/Atomの新着を確認できます。
 資料取得・引用照合・更新確認・引用追跡のスクリプトとMITライセンスを同梱しています。
+英語の手順と日本語の成果物へ改変して同梱しているため、`sources.toml` には登録しません。上流の更新は自動では取り込みません。
 既存環境では `assets.local.toml` の `[skills]` に `deepsearch = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
 `summary` は `/summary` で現在の会話を引き継ぎ用の要約にまとめ、新しいセッション・別 harness・分岐先の agent が作業を継続できるようにします（保存先は OS の一時ディレクトリ）。
@@ -50,8 +51,8 @@ natural-japaneseのskillは公式リポジトリをcommit `03bc944a0c4a9f0b2a66e
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 直前の pin `b251b9bdbc95cf5dc3099e69f8a4dbdccf96d91c` からの差分は v1.6.0 の作り直しです。参照は diagnose、manual-checklist、文書タイプ5種に絞り、lint は指摘ごとの直し方と段落ごとの確かめを出し、`newfacts.py` と `paragraphs.py` を追加しました。
 
-mattpocock/skills は commit `49dd158d1076134a641b33efb035946536778336` で固定します。
-直前の pin `f3fc5632f401156837ee3872f14fe33ccf1024ea` からの登録済み差分は wizard template のみです。画面クリアの失敗を拾い、dotenv の二重引用を安全に解けないときは聞き直し、`write_env` が変数を設定し、ステージを `run_wizard` に包みます。`writing-for-agents` の本文は変わっていません。実験 skill `in-progress/chief-of-staff` は `ask-matt` の経路に無いため pin しません。
+mattpocock/skills は commit `5beb35b040e3de97e54fa9e386d7e42d15c295c2` で固定します。
+直前の pin `49dd158d1076134a641b33efb035946536778336` から、登録済み skill の本文は変わっていません。動いたのは未登録の `in-progress/chief-of-staff` だけで、日付と commit を引く wiki に記憶を残すようになりました。`ask-matt` はそこへ経路を持たないため pin しません。`writing-for-agents` の本文も変わっていません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
