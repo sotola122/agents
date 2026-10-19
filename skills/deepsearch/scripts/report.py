@@ -21,7 +21,7 @@ import html
 import json
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 # Context lines on each side, expandable within the reading page.
 CONTEXT_LINES = 6
@@ -34,9 +34,24 @@ def norm(s: str) -> str:
 
 
 def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
-    """Check an excerpt near its stated lines (two-line tolerance), returning context."""
-    path = src_dir / q["file"]
-    if not path.exists():
+    """Check an excerpt near its stated lines (two-line tolerance), returning context.
+
+    Accept only a regular file inside src_dir, and only when src_dir stays inside
+    the topic directory. Reject absolute paths, parent segments, and links that
+    resolve outside those directories.
+    """
+    relative = Path(q["file"])
+    if relative.is_absolute() or PureWindowsPath(q["file"]).is_absolute() or ".." in relative.parts:
+        return False, [], 0, 0
+    try:
+        root = src_dir.resolve()
+        topic = src_dir.parent.resolve()
+        path = (src_dir / relative).resolve()
+    except (OSError, RuntimeError, ValueError):
+        return False, [], 0, 0
+    if root == topic or not root.is_relative_to(topic):
+        return False, [], 0, 0
+    if not path.is_relative_to(root) or not path.is_file():
         return False, [], 0, 0
     # Split on newlines only; splitlines also counts form feeds and disagrees with grep/sed.
     lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
@@ -46,8 +61,10 @@ def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
     # Two-column PDFs can mix columns on a single extracted line.
     # Split excerpts at ellipses and verify each piece in sequence.
     # Keep the ellipses visible so readers can see the omissions.
-    ok, pos = True, 0
-    for piece in [norm(p) for p in q["text"].split("…") if p.strip()]:
+    # An excerpt that normalizes to nothing is not a match.
+    pieces = [norm(p) for p in q["text"].split("…") if norm(p)]
+    ok, pos = bool(pieces), 0
+    for piece in pieces:
         at = region.find(piece, pos)
         if at < 0:
             ok = False

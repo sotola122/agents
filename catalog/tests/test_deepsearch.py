@@ -6,10 +6,11 @@ import importlib.util
 import io
 import json
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 SCRIPTS = Path(__file__).resolve().parents[2] / "skills/deepsearch/scripts"
@@ -24,6 +25,8 @@ def load(name):
 
 report = load("report")
 watch = load("watch")
+fetch = load("fetch")
+chain = load("chain")
 
 
 class DeepsearchTests(unittest.TestCase):
@@ -86,6 +89,171 @@ class DeepsearchTests(unittest.TestCase):
             results = list((topic / "watch").glob("*.md"))
             self.assertEqual(len(results), 2)
             self.assertTrue(any("新着なし" in p.read_text(encoding="utf-8") for p in results))
+
+
+class FetchSafetyTests(unittest.TestCase):
+    def test_non_http_url_is_rejected_without_reading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp) / "sources"
+            sources.mkdir()
+            secret = Path(tmp) / "secret.txt"
+            secret.write_text("local secret\n" * 200, encoding="utf-8")
+            for url in (secret.as_uri(), "FILE://" + secret.as_posix(),
+                        "ftp://example.test/paper.txt", "-o/tmp/x"):
+                with self.subTest(url=url), patch.object(fetch, "download") as download, \
+                        contextlib.redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(fetch.fetch_source(sources, "paper", url, sources), 1)
+                download.assert_not_called()
+                self.assertIn("http(s) の URL だけを取りに行く", output.getvalue())
+                self.assertEqual(list(sources.iterdir()), [])
+
+    def test_unsafe_names_are_rejected_before_download(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp) / "sources"
+            sources.mkdir()
+            for name in ("", ".", "..", "...", "   ", "../outside", "a/b", "a\\b",
+                         "/outside", "C:\\outside", "C:outside", "CON", "a\x00b", "a\nb"):
+                with self.subTest(name=name), patch.object(fetch, "download") as download, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(
+                        fetch.fetch_source(sources, name, "https://example.test/a", sources), 1)
+                download.assert_not_called()
+            self.assertEqual(list(sources.iterdir()), [])
+
+    def test_japanese_path_and_query_are_encoded(self):
+        seen = []
+
+        def open_(req, timeout):
+            seen.append(req.full_url)
+            response = MagicMock()
+            response.__enter__.return_value.read.return_value = b"body"
+            return response
+
+        with patch.object(fetch._OPENER, "open", side_effect=open_):
+            fetch.download("https://kotobank.jp/word/漆工芸")
+            fetch.download("https://example.test/search?q=和竿&page=2")
+            encoded = "https://kotobank.jp/word/%E6%BC%86%E5%B7%A5%E8%8A%B8"
+            fetch.download(encoded)
+        self.assertEqual(seen[0], "https://kotobank.jp/word/%E6%BC%86%E5%B7%A5%E8%8A%B8")
+        self.assertEqual(seen[1], "https://example.test/search?q=%E5%92%8C%E7%AB%BF&page=2")
+        self.assertEqual(seen[2], encoded)
+
+    def test_short_japanese_pdf_uses_html_floor(self):
+        text = "日本語の本文です。\n" * 150
+        self.assertLess(len(text), fetch.MIN_TEXT_CHARS)
+        self.assertGreater(len(text), fetch.MIN_HTML_CHARS)
+
+        def convert(pdf):
+            pdf.with_suffix(".txt").write_text(text, encoding="utf-8")
+            return text
+
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp)
+            with patch.object(fetch, "download", return_value=(b"%PDF-1.4\nshort", "application/pdf")), \
+                    patch.object(fetch, "pdf_to_text", side_effect=convert), \
+                    patch.object(fetch, "missing", return_value=[]), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                self.assertEqual(
+                    fetch.fetch_source(sources, "paper", "https://example.test/paper.pdf", sources), 0)
+            self.assertEqual((sources / "paper.txt").read_text(encoding="utf-8"), text)
+
+    def test_auto_captions_use_the_spoken_language(self):
+        asked = []
+
+        def yt_dlp(cmd, **kwargs):
+            flag = next(c for c in cmd if c.startswith("--write-"))
+            langs = cmd[cmd.index("--sub-langs") + 1]
+            asked.append((flag, langs))
+            tracks = {"en-orig": "English speech", "ja-orig": "吹き替え"} if flag == "--write-auto-subs" else {}
+            folder = Path(cmd[cmd.index("-o") + 1]).parent
+            for lang in langs.split(","):
+                if lang in tracks:
+                    (folder / f"v.{lang}.vtt").write_text(
+                        f"WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n{tracks[lang]}\n",
+                        encoding="utf-8")
+            return subprocess.CompletedProcess(cmd, 0, "Talk\tSpeaker\t20220820\ten-US\n", "")
+
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(fetch.subprocess, "run", side_effect=yt_dlp):
+            out = Path(tmp) / "talk.md"
+            body = fetch.youtube_to_md("https://www.youtube.com/watch?v=example", out)
+            text = out.read_text(encoding="utf-8")
+        self.assertEqual(asked, [("--write-subs", "ja,en"), ("--write-auto-subs", "en-orig")])
+        self.assertEqual(body, "[00:01] English speech")
+        self.assertIn("Speaker / 20220820", text)
+        self.assertNotIn("en-US", text.split("字幕:", 1)[0])
+
+
+class ChainKeyTests(unittest.TestCase):
+    def test_title_starting_with_w_is_searched(self):
+        work = {"id": "https://openalex.org/W2073651707", "display_name": "Weak Bourbaki",
+                "publication_year": 2004, "cited_by_count": 10, "doi": None,
+                "best_oa_location": None}
+        seen = []
+
+        def get(path, **params):
+            seen.append(path)
+            return work if path.startswith("/works/") else {"results": [work]}
+
+        with patch.object(chain, "get", side_effect=get), \
+                patch.object(sys, "argv", ["chain.py", "find", "Weak", "Bourbaki"]), \
+                contextlib.redirect_stdout(io.StringIO()):
+            self.assertEqual(chain.main(), 0)
+        self.assertEqual(seen, ["/works"])
+        with patch.object(chain, "get", return_value={"results": [work]}) as get:
+            self.assertEqual(chain.resolve("What is exploratory search"), work)
+        self.assertEqual(get.call_args.args[0], "/works")
+
+    def test_work_id_and_doi_resolve_directly(self):
+        work = {"id": "https://openalex.org/W1", "display_name": "Paper",
+                "publication_year": 2000, "cited_by_count": 1, "doi": "https://doi.org/10.1/x",
+                "best_oa_location": None}
+
+        def paths(*argv):
+            seen = []
+
+            def get(path, **params):
+                seen.append(path)
+                return work if path.startswith("/works/") else {"results": [work]}
+
+            with patch.object(chain, "get", side_effect=get), \
+                    patch.object(sys, "argv", ["chain.py", *argv]), \
+                    contextlib.redirect_stdout(io.StringIO()):
+                chain.main()
+            return seen
+
+        self.assertEqual(paths("find", "W2073651707"), ["/works/W2073651707"])
+        self.assertEqual(paths("find", "10.1016/j.jalgebra.2004.01.001"),
+                         ["/works/doi:10.1016/j.jalgebra.2004.01.001"])
+
+
+class ExcerptBoundaryTests(unittest.TestCase):
+    def quote(self, file, text="Original sentence"):
+        return {"file": file, "line": 1, "text": text}
+
+    def test_report_rejects_paths_outside_sources(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            topic = Path(tmp) / "topic"
+            sources = topic / "sources"
+            sources.mkdir(parents=True)
+            outside = topic / "outside.md"
+            outside.write_text("Original sentence", encoding="utf-8")
+            for file in ("../outside.md", str(outside), "C:\\outside.md", "\x00"):
+                with self.subTest(file=file):
+                    self.assertEqual(report.verify(sources, self.quote(file)), (False, [], 0, 0))
+
+    def test_report_rejects_empty_excerpts_and_accepts_nested_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp) / "topic" / "sources"
+            nested = sources / "archive"
+            nested.mkdir(parents=True)
+            (nested / "paper.md").write_text("Original sentence", encoding="utf-8")
+            for text in ("", " \t\n ", "…", " …  … "):
+                with self.subTest(text=text):
+                    self.assertFalse(report.verify(sources, self.quote("archive/paper.md", text))[0])
+            ok, context, _, _ = report.verify(sources, self.quote("archive/paper.md"))
+            self.assertTrue(ok)
+            self.assertIn("Original sentence", context)
 
 
 if __name__ == "__main__":

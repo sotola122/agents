@@ -1,7 +1,7 @@
 # Basis for Deepsearch
 
 This reference preserves the rationale and observations recorded by upstream
-[imozuru](https://github.com/MaryCache/imozuru/tree/0d656febbc3f5e0a20cb03d3e011b703e69fe034).
+[imozuru](https://github.com/MaryCache/imozuru/tree/4f8fec7b686750c0c4083336691bdc6ea075aa32).
 The upstream author collected the originals during a 2026-10-09 trial on search
 methods. These are upstream source claims and trial observations, not new
 verification performed for this adaptation.
@@ -75,5 +75,7 @@ knowledge was mainly in practitioners' posts.
   key material sometimes remained behind X, pixiv, and Xiaohongshu login walls.
 - A genuine Japanese article had only 2,904 characters; a 3,000-character floor
   intended for English papers rejected it.
+- The same applies to PDFs. A PDF whose non-whitespace text is more than 30% CJK
+  uses the HTML floor of 1,000 characters.
 - Search reports relied on snippets. One Type-R description disagreed with its
   original source, motivating explicit unverified labels until the source is read.

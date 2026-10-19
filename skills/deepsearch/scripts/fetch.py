@@ -29,6 +29,11 @@ from pathlib import Path
 # An upstream trial rejected a genuine 2,904-character article at 3,000.
 MIN_TEXT_CHARS = 3000
 MIN_HTML_CHARS = 1000
+# CJK PDFs carry content in fewer characters than English papers.
+# Above this share of non-whitespace CJK characters, use the HTML floor.
+CJK_RATIO_FOR_PDF = 0.3
+# Hiragana, katakana, CJK ideographs, and fullwidth letters or symbols.
+_CJK = re.compile(r"[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef]")
 MAX_BYTES = 40_000_000
 # Access-barrier phrases, matched case-insensitively.
 WALL_PATTERNS = (
@@ -60,9 +65,22 @@ class _Redirect308(urllib.request.HTTPRedirectHandler):
 _OPENER = urllib.request.build_opener(_Redirect308)
 
 
+def ascii_url(url: str) -> str:
+    """Percent-encode non-ASCII characters in the path and query.
+
+    urllib builds the request line as ASCII, so a Japanese path or query left as
+    literal characters raises UnicodeEncodeError. Including % in safe leaves an
+    already-encoded URL unchanged. Internationalized domain names are not encoded.
+    """
+    parts = urllib.parse.urlsplit(url)
+    path = urllib.parse.quote(parts.path, safe="/%:@!$&'()*+,;=~")
+    query = urllib.parse.quote(parts.query, safe="=&%/:+?@!$'()*,;~")
+    return urllib.parse.urlunsplit((parts.scheme, parts.netloc, path, query, parts.fragment))
+
+
 def download(url: str) -> tuple[bytes, str]:
     """Fetch a URL and return its body and Content-Type."""
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0 deepsearch"})
+    req = urllib.request.Request(ascii_url(url), headers={"User-Agent": "Mozilla/5.0 deepsearch"})
     with _OPENER.open(req, timeout=90) as res:
         return res.read(MAX_BYTES), res.headers.get("Content-Type", "")
 
@@ -101,6 +119,12 @@ def decode_text(body: bytes, ctype: str = "") -> str:
         except UnicodeDecodeError:
             continue
     return min((body.decode(c, errors="replace") for c in candidates), key=lambda t: t.count("�"))
+
+
+def mostly_cjk(text: str) -> bool:
+    """Return whether non-whitespace CJK characters exceed CJK_RATIO_FOR_PDF."""
+    chars = re.sub(r"\s", "", text)
+    return bool(chars) and len(_CJK.findall(chars)) / len(chars) > CJK_RATIO_FOR_PDF
 
 
 def missing(*commands: str) -> list[str]:
@@ -276,24 +300,31 @@ MIN_TRANSCRIPT_CHARS = 300
 def youtube_to_md(url: str, out: Path) -> str:
     """Download captions only with yt-dlp and preserve timestamps.
 
-    Prefer manual captions, then automatic captions; prefer Japanese, then English.
+    Prefer manual captions in Japanese, then English. If none exist, download automatic
+    captions only in the video's original spoken language. Requesting ja,en for automatic
+    captions selects a machine translation, and YouTube can answer 429 and leave no
+    caption file. A dubbed track can also be labeled ja-orig while its text is a
+    translation, so the spoken language from yt-dlp selects the single -orig track.
     Drop consecutive duplicate lines. Label automatic captions so readers can check
     errors against the video. Try manual and automatic downloads separately because
     their filenames coincide. Force UTF-8 for metadata piped on Windows.
     """
     tmp = out.parent / f".{out.stem}-subs"
     tmp.mkdir(exist_ok=True)
-    kind = "手動"
+    kind, langs = "手動", "ja,en"
     for flag in ("--write-subs", "--write-auto-subs"):
         meta = subprocess.run(
             ["yt-dlp", "--no-update", "--skip-download", flag, "--encoding", "utf-8",
-             "--sub-langs", "ja,en", "--sub-format", "vtt", "--no-simulate",
-             "--print", "%(title)s\t%(uploader)s\t%(upload_date)s",
+             "--sub-langs", langs, "--sub-format", "vtt", "--no-simulate",
+             "--print", "%(title)s\t%(uploader)s\t%(upload_date)s\t%(language|)s",
              "-o", str(tmp / "v.%(ext)s"), url],
             capture_output=True, encoding="utf-8", errors="replace")
         if any(tmp.glob("*.vtt")):
             break
         kind = "自動（誤変換あり・引用は動画で確かめる）"
+        # language may be regional (en-US); caption files use the base code plus -orig.
+        spoken = meta.stdout.rstrip("\n").split("\t")[-1].split("-")[0]
+        langs = f"{spoken}-orig" if spoken else "ja-orig,en-orig"
     vtts = sorted(tmp.glob("*.vtt"), key=lambda p: (".ja" not in p.name, p.name))
     lines, last = [], ""
     if vtts:
@@ -315,7 +346,8 @@ def youtube_to_md(url: str, out: Path) -> str:
     tmp.rmdir()
     head = meta.stdout.strip().split("\t")
     title = head[0] if head and head[0] else url
-    info = " / ".join(head[1:]) if len(head) > 1 else ""
+    # The fourth field is the spoken language used to choose captions, not display metadata.
+    info = " / ".join(head[1:3]) if len(head) > 1 else ""
     body = "\n".join(lines)
     out.write_text(f"# {title}\n\n{url}\n{info}\n字幕: {kind + ' ' + vtts[0].name if vtts else 'なし'}\n\n{body}\n",
                    encoding="utf-8")
@@ -339,8 +371,25 @@ def save_verified(saved: Path, kept: Path, destination: Path) -> Path:
     return target
 
 
+def valid_source_name(name: str) -> bool:
+    """Accept only a single filename, not a path or a Windows device name."""
+    device = name.split(".", 1)[0].rstrip(" ").upper()
+    return (bool(name.strip(" .")) and name == name.rstrip(" .")
+            and not any(c in name for c in "/\\:")
+            and not any(ord(c) < 32 or 127 <= ord(c) <= 159 for c in name)
+            and device not in {"CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$"}
+            and not re.fullmatch(r"(?:COM|LPT)[1-9¹²³]", device))
+
+
 def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
     """Stage this fetch separately; preserve existing sources during validation."""
+    if not valid_source_name(name):
+        print(f"FAIL\t{name!r}\t原文の名前は単一のファイル名にする")
+        return 1
+    # file:// and ftp:// would let urllib read a local path into sources/.
+    if urllib.parse.urlsplit(url).scheme.lower() not in {"http", "https"}:
+        print(f"FAIL\t{name}\thttp(s) の URL だけを取りに行く")
+        return 1
 
     if X_POST.match(url):
         print(f"FAIL\t{name}\tX はログインの壁で本文が取れない（URL を map.md に残す）")
@@ -416,7 +465,8 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         kept = saved = sources / f"{name}.md"
         text = html_to_md(f"https://arxiv.org/html/{arxiv_id.group(1)}", kept)
 
-    floor = MIN_TEXT_CHARS if saved.suffix == ".pdf" else MIN_HTML_CHARS
+    # English PDFs keep the higher floor. A mostly CJK PDF uses the HTML floor.
+    floor = MIN_TEXT_CHARS if saved.suffix == ".pdf" and not mostly_cjk(text) else MIN_HTML_CHARS
     head = text[:4000].lower()
     wall = next((p for p in WALL_PATTERNS if p in head), None)
     if len(text) < floor or (wall and len(text) < MIN_TEXT_CHARS * 4):
@@ -440,6 +490,9 @@ def main() -> int:
         print(__doc__, file=sys.stderr)
         return 2
     sources, name, url = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
+    if not valid_source_name(name):
+        print(f"FAIL\t{name!r}\t原文の名前は単一のファイル名にする")
+        return 1
     sources.mkdir(parents=True, exist_ok=True)
     # Convert and clean up within staging; preserve existing sources until validation.
     # Stage inside the destination so successful replacements stay on one filesystem.

@@ -14,11 +14,14 @@ Output: tab-separated year, citation count, ID, title, DOI, and open-access PDF.
 """
 
 import json
+import re
 import sys
 import urllib.parse
 import urllib.request
 
 API = "https://api.openalex.org"
+# OpenAlex work IDs are W plus digits. Do not treat a title such as "Weak …" as an ID.
+WORK_ID = re.compile(r"W\d+")
 FIELDS = "id,display_name,publication_year,cited_by_count,doi,best_oa_location"
 
 
@@ -49,7 +52,7 @@ def search_title(key: str) -> list[dict]:
 
 def resolve(key: str) -> dict:
     """Resolve a DOI, OpenAlex ID, or title; titles select the most-cited match."""
-    if key.startswith("W") or "openalex.org/" in key:
+    if WORK_ID.fullmatch(key) or "openalex.org/" in key:
         return get(f"/works/{key.rsplit('/', 1)[-1]}", select=FIELDS)
     if key.startswith("10.") or "doi.org/" in key:
         doi = key.split("doi.org/")[-1]
@@ -82,7 +85,7 @@ def main() -> int:
 
     if cmd == "find":
         # Show all title candidates so the reader can identify the original.
-        hits = [resolve(key)] if key.startswith(("W", "10.")) or "/" in key else search_title(key)
+        hits = [resolve(key)] if WORK_ID.fullmatch(key) or key.startswith("10.") or "/" in key else search_title(key)
         if not hits:
             print(f"候補なし: {key}（DOI で引き直すか、題名の語を減らす）")
         for w in hits:

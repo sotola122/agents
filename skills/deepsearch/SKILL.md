@@ -15,8 +15,8 @@ description: >-
 Explore from unfamiliar vocabulary to original sources. **Preserve originals
 without summarizing them**, and **decide when to stop from evidence, not confidence**.
 
-Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/0d656febbc3f5e0a20cb03d3e011b703e69fe034)
-at commit `0d656febbc3f5e0a20cb03d3e011b703e69fe034`, under the bundled [MIT license](LICENSE).
+Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/4f8fec7b686750c0c4083336691bdc6ea075aa32)
+at commit `4f8fec7b686750c0c4083336691bdc6ea075aa32`, under the bundled [MIT license](LICENSE).
 
 ## Language
 
@@ -34,7 +34,8 @@ prompt size; that does not change the output language.
   (Kuhlthau 1991). Preserve the details the user needs to judge the sources; point
   to passages rather than imposing an interpretation.
 - Choosing one direction too soon can make later searches reinforce that choice
-  (Zhou et al. 2026, HypoSearch). Explore plausible branches before comparing them.
+  (Zhou et al. 2026, HypoSearch). When more than one hypothesis is plausible,
+  investigate each one separately, then compare them.
 - Citation chaining avoids having to express an unfamiliar subject in the right
   vocabulary (Bates 1989). Follow citations and authors when keywords fail.
 - Read [references/theory.md](references/theory.md) when examining or changing
@@ -82,14 +83,16 @@ conditions. These claims are the stopping criteria (HALT, Roh & Han 2026).
 - Include at least one claim that retains the user's exact substantive condition.
   For a request about editable AI-generated images, require evidence from applying
   the method to AI-generated images, not merely evidence that an editing tool exists.
-- Make at least half the claims require reading originals: how well a method works,
-  where it fails, or what is missing. Avoid a list of existence checks.
+- Make at least half the claims require reading originals: how effective a method
+  is, where it fails, or what is missing. Avoid a list of existence checks.
 - Even for tips or established practice, include whether original research or a
   foundational source supports that practice. If none is found, state the scope of
   the unsuccessful search rather than concluding that no theory exists.
 
-Allow the question to evolve (berrypicking). Update the question and claims in
-`map.md` and explain the change in `log.md`.
+Allow the question to change while searching. Human search often changes the
+question as reading proceeds and collects a few pieces from a new place each time
+(Bates 1989, berrypicking). Update the question and claims in `map.md` and explain
+the change in `log.md`.
 
 ### 1. Build the map (round 0)
 
@@ -126,7 +129,7 @@ after checking the original.
 
 ### 2. Follow leads (each research round)
 
-Choose leads with strong information scent: repeated names, surveys/textbooks,
+Choose leads that look worth following: repeated names, surveys/textbooks,
 canonical citations, or practitioners repeatedly recommended by others.
 
 | Move | Academic sources | Practitioner sources | Tools |
@@ -147,8 +150,8 @@ Include those accounts rather than restricting the search to institutional venue
   absence of references or citations. Search downloaded reference sections for
   backward links and the web for papers citing the title.
 - When two hypotheses remain plausible, search both and compare after both return.
-- Download promising originals with `fetch.py`. Add only `OK` results to the source
-  table. Record `FAIL`, its URL, and the reason in `log.md`.
+- Save sources that bear on a required claim with `fetch.py`. Add only `OK` results
+  to the source table. Record `FAIL`, its URL, and the reason in `log.md`.
 - Before declaring a canonical source unreachable, seek lawful copies on author,
   lab, university, or subject websites, or an earlier technical report.
 - Search the downloaded `.txt`/`.md` for relevant passages and verify line numbers.
@@ -179,12 +182,13 @@ Stop for one of these five reasons and record the evidence in `log.md`:
    hypotheses are not comparable. Evaluate each hypothesis by its claim coverage.
    Include sources found by the coordinator in the known set given to workers.
 3. **Four research rounds:** list unsupported claims and the reasons they remain open.
-4. **Access barriers:** all remaining evidence is behind login/paywalls and no
-   reachable lead remains. This includes the missing part of a partially supported
-   claim. List URLs for the user to open in their browser. For freely accessible
-   pages blocked only by a browser challenge, request a normal browser visit before
+4. **Login or payment:** every remaining original requires a login (X, pixiv,
+   Xiaohongshu, or another members-only site) or payment, and nothing reachable
+   without either remains. This includes the missing part of a partially supported
+   claim. List URLs for the user to open in their browser. For a freely published
+   page blocked only by a browser challenge, request a normal browser visit before
    treating the source as unreachable; respect the browser tool's permissions.
-   Do not bypass challenges or treat paid/copy-request access as public access.
+   Do not bypass challenges. Treat copy-request and paid access as not obtained.
 5. **User limit:** a requested time/search budget expires first. State the actual
    coverage and saturation counts without claiming another criterion was met.
 
@@ -201,10 +205,11 @@ Put the `report.html` path first, then provide:
 
 1. The stopping reason from the five criteria above.
 2. Original source locations for each claim, in 1–2 lines per claim.
-3. Unreached material, including canonical sources blocked by access barriers.
+3. Unreached material, including canonical sources that require login or payment.
 4. Paths to 2–4 originals worth reading, with one line identifying each passage.
-5. Important blocked URLs and why each matters; let the user read them through
-   their own account. Do not create accounts or sign in as part of this workflow.
+5. Important URLs that require login or payment, and why each matters; let the
+   user read them through their own account. Do not create accounts or sign in
+   as part of this workflow.
 6. Workflow problems, such as tool failures or workers exceeding their assignment.
 7. Ask briefly in Japanese whether the findings matched the user's expectations. Append any answer
    verbatim to `log.md`. Revisit thresholds using accumulated logs, not memory.
@@ -259,9 +264,9 @@ recurring scheduling requires a separate user request.
    X and pixiv do not provide supported feeds; report that limitation. Verify feed
    availability with `watch.py add`, not a guessed URL or a worker's assertion.
 3. Run `python3 <skill_dir>/scripts/watch.py check <topic_dir>`. New feeds initially
-   use a 14-day window; change it with `--days N`. Results go to timestamped files
-   in `watch/`. Quiet feeds still show their newest dated item outside the window.
-   Use `--fresh` to ignore seen history and reselect by a wider date window.
+   use a 14-day period; change it with `--days N`. Results go to timestamped files
+   in `watch/`. Quiet feeds still show their newest dated item from before that
+   period. Use `--fresh` to ignore seen history and reselect by a wider date range.
 4. Show title, date, venue, and one quoted opening line from the feed per item.
    Add no summaries or scores unless requested. Fetch only items the user selects
    or those relevant to required claims, then add them to the source table.
@@ -276,7 +281,7 @@ recurring scheduling requires a separate user request.
 # 調査マップ: <topic>
 
 問い: <1–2 lines in Japanese>
-入口の言葉: <initial search words>
+最初の検索語: <initial search words>
 
 ## 要る主張
 - [ ] <claim> — <original passage location; mark [x] when supported>
@@ -324,14 +329,19 @@ Scripts require Python 3.10+ and use only the standard library. External command
 are optional except when needed for the requested source format.
 
 - `scripts/fetch.py <sources_dir> <name> <url>`: download and validate content before
-  moving it into `sources/`. Save PDF plus `.txt` using Poppler/Xpdf `pdftotext
-  -layout`; OCR image-only PDFs with `pdftoppm` and `tesseract`. Save HTML as `.md`
-  through [ax](https://github.com/yusukebe/ax) if installed, otherwise a standard-library
-  extractor. Download YouTube captions only with `yt-dlp`, preserving timestamps
-  and the upstream Japanese-then-English language preference. Missing required
-  tools, walls, 404s, or short content produce `FAIL`, preserving an existing
-  verified source. X returns `FAIL` without attempting a download; retain the URL
-  and any unverified search snippet as a lead in the map.
+  moving it into `sources/`. `name` must be a single filename, and the URL must use
+  `http` or `https`. Save PDF plus `.txt` using Poppler/Xpdf `pdftotext -layout`;
+  OCR image-only PDFs with `pdftoppm` and `tesseract`. The length floor is 3,000
+  characters for a PDF and 1,000 for HTML; a PDF whose non-whitespace text is more
+  than 30% CJK uses the 1,000-character floor. Save HTML as `.md` through
+  [ax](https://github.com/yusukebe/ax) if installed, otherwise a standard-library
+  extractor. Download YouTube captions only with `yt-dlp`, preserving timestamps.
+  Manual captions prefer Japanese, then English. Automatic captions use only the
+  video's original spoken language, so a translated or dubbed track is not saved
+  in place of the original. Missing required tools, login or payment pages, 404s,
+  or short content produce `FAIL`, preserving an existing verified source. X returns
+  `FAIL` without attempting a download; retain the URL and any unverified search
+  snippet as a lead in the map.
 - Cite video passages as `sources/video.md [12:34]` rather than a line number.
 - `scripts/report.py <topic_dir> [--check]`: verify excerpts; generate the reading
   page unless `--check` is supplied.
@@ -339,7 +349,9 @@ are optional except when needed for the requested source format.
   DOCTYPE or ENTITY before parsing them.
 - `scripts/chain.py find|refs|cites|author`: query OpenAlex for works and citations.
   Use existing anonymous access within service limits; do not create API keys or
-  register payment. Recent papers may be incompletely indexed, and an author name
+  register payment. Look up an OpenAlex work directly only when the key is `W`
+  followed by digits, or an OpenAlex URL; a title that merely starts with W is a
+  title search. Recent papers may be incompletely indexed, and an author name
   can resolve to a different person. Verify identities and log access failures.
 - Name files `<author>-<year>-<short-title>` or `arxiv-<id>-<short-title>`.
 
