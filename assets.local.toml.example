@@ -66,6 +66,7 @@ config-catalog = false
 claude = true
 codex = true
 cursor = true
+deepsearch = true
 design-docs = true
 empirical-prompt-tuning = false
 git-worktree = true

@@ -24,6 +24,12 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
+`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `0d656febbc3f5e0a20cb03d3e011b703e69fe034` を基にしたローカルスキルです。
+スキル本文・補足資料・コード内の説明は英語にし、調査結果・調査マップ・HTMLレポートは日本語で出力します。引用原文は保持し、日本語訳を添えます。
+調査資料は作業プロジェクト内の `.research/<topic>/` に保存します。`/deepsearch <topic>` で原典をたどる調査、`/deepsearch watch <topic>` で登録したRSS/Atomの新着を確認できます。
+資料取得・引用照合・更新確認・引用追跡のスクリプトとMITライセンスを同梱しています。
+既存環境では `assets.local.toml` の `[skills]` に `deepsearch = true` を追加してから `catalog diff` / `catalog apply` を実行します。
+
 `summary` は `/summary` で現在の会話を引き継ぎ用の要約にまとめ、新しいセッション・別 harness・分岐先の agent が作業を継続できるようにします（保存先は OS の一時ディレクトリ）。
 長くなった orchestrator セッションのトークン消費を抑えるため、タスクの区切りで要約して新しいセッションに切り替えます。
 有効にするには `assets.local.toml` の `[skills]` に `summary = true` を追加します。
