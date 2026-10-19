@@ -21,7 +21,7 @@ Anago はレビュー／ワークフロー skill を自リポジトリで管理�
 Big Bang の初回・継続待機は10分以上とし、タイムアウト後は状態を確認して待機継続・助言・中断を判断します。
 
 `design-docs` は設計判断と代替案の比較を含む日本語の設計文書を作成します。
-文書全体を5〜10ページ、最大10ページに収め、シーケンス図やクラス図などの図はMermaidで記述します。
+ページ数は設計内容に応じて決め、ユーザーがページ数を指定した場合のみその指定に従います。シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
 `deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `0d656febbc3f5e0a20cb03d3e011b703e69fe034` を基にしたローカルスキルです。
