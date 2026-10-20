@@ -127,9 +127,11 @@ class FetchSafetyTests(unittest.TestCase):
             seen.append(req.full_url)
             response = MagicMock()
             response.__enter__.return_value.read.return_value = b"body"
+            response.__enter__.return_value.length = 0
             return response
 
-        with patch.object(fetch._OPENER, "open", side_effect=open_):
+        with patch.object(fetch, "resolve", return_value={"1.1.1.1"}), \
+                patch.object(fetch._OPENER, "open", side_effect=open_):
             fetch.download("https://kotobank.jp/word/漆工芸")
             fetch.download("https://example.test/search?q=和竿&page=2")
             encoded = "https://kotobank.jp/word/%E6%BC%86%E5%B7%A5%E8%8A%B8"
@@ -149,7 +151,8 @@ class FetchSafetyTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             sources = Path(tmp)
-            with patch.object(fetch, "download", return_value=(b"%PDF-1.4\nshort", "application/pdf")), \
+            with patch.object(fetch, "resolve", return_value={"1.1.1.1"}), \
+                    patch.object(fetch, "download", return_value=(b"%PDF-1.4\nshort", "application/pdf")), \
                     patch.object(fetch, "pdf_to_text", side_effect=convert), \
                     patch.object(fetch, "missing", return_value=[]), \
                     contextlib.redirect_stdout(io.StringIO()):
@@ -164,6 +167,7 @@ class FetchSafetyTests(unittest.TestCase):
             flag = next(c for c in cmd if c.startswith("--write-"))
             langs = cmd[cmd.index("--sub-langs") + 1]
             asked.append((flag, langs))
+            self.assertLess(cmd.index("--"), len(cmd) - 1)
             tracks = {"en-orig": "English speech", "ja-orig": "吹き替え"} if flag == "--write-auto-subs" else {}
             folder = Path(cmd[cmd.index("-o") + 1]).parent
             for lang in langs.split(","):
@@ -174,7 +178,7 @@ class FetchSafetyTests(unittest.TestCase):
             return subprocess.CompletedProcess(cmd, 0, "Talk\tSpeaker\t20220820\ten-US\n", "")
 
         with tempfile.TemporaryDirectory() as tmp, \
-                patch.object(fetch.subprocess, "run", side_effect=yt_dlp):
+                patch.object(fetch, "run_tool", side_effect=yt_dlp):
             out = Path(tmp) / "talk.md"
             body = fetch.youtube_to_md("https://www.youtube.com/watch?v=example", out)
             text = out.read_text(encoding="utf-8")
@@ -254,6 +258,74 @@ class ExcerptBoundaryTests(unittest.TestCase):
             ok, context, _, _ = report.verify(sources, self.quote("archive/paper.md"))
             self.assertTrue(ok)
             self.assertIn("Original sentence", context)
+
+    def test_line_numbers_must_fall_inside_the_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp) / "topic" / "sources"
+            sources.mkdir(parents=True)
+            (sources / "paper.md").write_text("Original sentence\n", encoding="utf-8")
+            for line, end in ((0, None), (-1, None), (3, None), (1, 0), ("1", None)):
+                quote = {"file": "paper.md", "line": line, "text": "Original sentence"}
+                if end is not None:
+                    quote["end"] = end
+                with self.subTest(line=line, end=end):
+                    self.assertFalse(report.verify(sources, quote)[0])
+            self.assertTrue(report.verify(sources, {"file": "paper.md", "line": 1,
+                                                     "end": None, "text": "Original sentence"})[0])
+
+
+class UntrustedInputTests(unittest.TestCase):
+    def test_private_and_non_http_urls_are_refused(self):
+        self.assertIn("手元や内側", fetch.url_problem("http://127.0.0.1/secret"))
+        self.assertIn("http(s)", fetch.url_problem("file:///etc/passwd"))
+        with patch.object(fetch, "resolve", return_value={"1.1.1.1"}):
+            self.assertIsNone(fetch.url_problem("https://example.test/paper"))
+        with patch.dict("os.environ", {"DEEPSEARCH_ALLOW_PRIVATE": "1"}):
+            self.assertIsNone(fetch.url_problem("http://127.0.0.1/secret"))
+            self.assertIn("http(s)", fetch.url_problem("file:///etc/passwd"))
+
+    def test_youtube_detection_uses_the_host(self):
+        self.assertTrue(fetch.is_youtube("https://www.youtube.com/watch?v=abc"))
+        self.assertTrue(fetch.is_youtube("https://youtu.be/abc"))
+        self.assertFalse(fetch.is_youtube("https://evil.example/?next=youtu.be/abc"))
+        self.assertFalse(fetch.is_youtube("https://www.youtube.com/feed/library"))
+
+    def test_doctype_feed_is_refused_and_gzip_is_inflated(self):
+        payload = b"<?xml version='1.0'?><!DOCTYPE rss [<!ENTITY x 'y'>]><rss></rss>"
+        with self.assertRaises(ValueError):
+            watch.items(payload)
+        import gzip
+        body = gzip.compress(b"<rss><channel></channel></rss>")
+        self.assertTrue(watch.gunzip(body).startswith(b"<rss>"))
+
+    def test_chain_output_strips_control_characters_and_lists_authors(self):
+        work = {"id": "https://openalex.org/W1", "display_name": "Title\twith\nbreak",
+                "publication_year": 2000, "cited_by_count": 1, "doi": None,
+                "best_oa_location": None}
+        self.assertEqual(len(chain.row(work).split("\t")), 6)
+        self.assertNotIn("\n", chain.row(work))
+        authors = [
+            {"id": "https://openalex.org/A1", "display_name": "Ada", "works_count": 2,
+             "last_known_institutions": []},
+            {"id": "https://openalex.org/A2", "display_name": "Ada Other", "works_count": 9,
+             "last_known_institutions": []},
+        ]
+
+        def get(path, **params):
+            if path == "/authors":
+                return {"results": authors}
+            if path.startswith("/authors/"):
+                return authors[0]
+            return {"results": [work], "meta": {"count": 1}}
+
+        with patch.object(chain, "get", side_effect=get), \
+                patch.object(sys, "argv", ["chain.py", "author", "Ada"]), \
+                contextlib.redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(chain.main(), 0)
+        text = output.getvalue()
+        self.assertIn("# author Ada A1", text)
+        self.assertIn("# 別の候補 Ada Other A2", text)
+        self.assertIn("chain.py author A2", text)
 
 
 if __name__ == "__main__":

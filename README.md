@@ -24,8 +24,8 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 ページ数は設計内容に応じて決め、ユーザーがページ数を指定した場合のみその指定に従います。シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `4f8fec7b686750c0c4083336691bdc6ea075aa32` を基にしたローカルスキルです。
-取り込み済みの修正は、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外の URL の拒否、YouTube 自動字幕を動画の元の言語に限ること、和文が3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査です。
+`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `69b2e1b82c3571af366a7913375714aa5069c652` を基にしたローカルスキルです。
+取り込み済みの修正には、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外と手元・内側の宛先の拒否、YouTube 自動字幕を動画の元の言語に限ること、和文が3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査、検索結果の URL・本文・フィードを他人の入力として扱う検査が含まれます。
 スキル本文・補足資料・コード内の説明は英語にし、調査結果・調査マップ・HTMLレポートは日本語で出力します。引用原文は保持し、日本語訳を添えます。
 調査資料は作業プロジェクト内の `.research/<topic>/` に保存します。`/deepsearch <topic>` で原典をたどる調査、`/deepsearch watch <topic>` で登録したRSS/Atomの新着を確認できます。
 資料取得・引用照合・更新確認・引用追跡のスクリプトとMITライセンスを同梱しています。

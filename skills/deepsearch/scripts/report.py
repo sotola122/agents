@@ -3,6 +3,8 @@
 
 Preserve original passages instead of replacing them with summaries. Stop without
 generating HTML if any excerpt does not match its specified original source lines.
+Accept only line numbers that fall inside the source file. Replace report.html
+only after the new page is fully written.
 
 Usage:
     report.py <topic_dir>          Write <topic_dir>/report.html.
@@ -19,27 +21,23 @@ Schema (? means optional):
 
 import html
 import json
+import os
 import re
 import sys
 from pathlib import Path, PureWindowsPath
 
-# Context lines on each side, expandable within the reading page.
+# 前後に見せる行数。抜き書きがどんな流れの中にあったかを、ページの中で開いて確かめられるように。
 CONTEXT_LINES = 6
 
 
 def norm(s: str) -> str:
-    """Normalize whitespace and bullet markers for matching; preserve other characters."""
+    """照合用に空白・改行・箇条書きの印をそろえる。文字そのものは変えない。"""
     s = re.sub(r"(?m)^\s*[-*]\s+", " ", s)
     return re.sub(r"\s+", " ", s).strip()
 
 
 def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
-    """Check an excerpt near its stated lines (two-line tolerance), returning context.
-
-    Accept only a regular file inside src_dir, and only when src_dir stays inside
-    the topic directory. Reject absolute paths, parent segments, and links that
-    resolve outside those directories.
-    """
+    """抜き書きが原文の指定の行（前後2行の余裕つき）にそのまま在るか。前後の文脈も返す。"""
     relative = Path(q["file"])
     if relative.is_absolute() or PureWindowsPath(q["file"]).is_absolute() or ".." in relative.parts:
         return False, [], 0, 0
@@ -53,15 +51,22 @@ def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
         return False, [], 0, 0
     if not path.is_relative_to(root) or not path.is_file():
         return False, [], 0, 0
-    # Split on newlines only; splitlines also counts form feeds and disagrees with grep/sed.
+    # splitlines() はページ区切り（\f）も改行に数え、grep・sed と行番号がずれる。改行だけで数える
     lines = path.read_text(encoding="utf-8", errors="replace").split("\n")
-    start = max(1, q["line"] - 2)
-    end = min(len(lines), q.get("end", q["line"]) + 2)
+    # 0 や負の行・end が line より前の指定は、前後2行の余裕で原文の頭に寄せると通ってしまい、
+    # 指していない行を「照合済み」と見せる（2026-10-20 のレビュー）。原文の中の行だけを受け付ける
+    # end が無いか null なら1行だけ（null は前から通っていたので受け付け続ける）
+    first = q["line"]
+    last = first if q.get("end") is None else q["end"]
+    if not all(type(n) is int for n in (first, last)) or not 1 <= first <= last <= len(lines):
+        return False, [], 0, 0
+    start = max(1, first - 2)
+    end = min(len(lines), last + 2)
+    # ここから先は、検査を通った first・last だけを使う
     region = norm(" ".join(lines[start - 1:end]))
-    # Two-column PDFs can mix columns on a single extracted line.
-    # Split excerpts at ellipses and verify each piece in sequence.
-    # Keep the ellipses visible so readers can see the omissions.
-    # An excerpt that normalizes to nothing is not a match.
+    # 2段組の PDF は左右の段が1行に混ざり、何行かにまたがる文はそのままでは照合できない
+    # （Yoshida 2008 で起きた）。抜き書きを「…」で区切れば、区切りごとに順に照らす。
+    # 区切りはページにも「…」として残るので、省いたことが読む人に見える。
     pieces = [norm(p) for p in q["text"].split("…") if norm(p)]
     ok, pos = bool(pieces), 0
     for piece in pieces:
@@ -71,7 +76,7 @@ def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
             break
         pos = at + len(piece)
     c0 = max(1, q["line"] - CONTEXT_LINES)
-    c1 = min(len(lines), q.get("end", q["line"]) + CONTEXT_LINES)
+    c1 = min(len(lines), last + CONTEXT_LINES)
     return ok, lines[c0 - 1:c1], c0, c1
 
 
@@ -81,9 +86,9 @@ def esc(s: str) -> str:
 
 def quote_html(src_dir: Path, q: dict, ctx: list[str], c0: int) -> str:
     loc = f"{q['file']}:{q['line']}" + (f"-{q['end']}" if q.get("end") else "")
-    hit = range(q["line"], q.get("end", q["line"]) + 1)
-    # Skip blank context lines but preserve their original line numbers.
-    # Block spans need no separating newlines, which would double the spacing.
+    hit = range(q["line"], (q.get("end") or q["line"]) + 1)
+    # markdown の空行で間延びするので、空の行は飛ばす（行番号はそのまま残るので位置は追える）
+    # span は display:block なので区切りの改行は入れない（入れると行間が二重になった）
     ctx_html = "".join(
         f'<span class="{"hit" if c0 + i in hit else ""}"><b>{c0 + i}</b> {esc(t)}</span>'
         for i, t in enumerate(ctx) if t.strip())
@@ -181,23 +186,27 @@ def main() -> int:
     if data.get("unreached"):
         body.append("<h2>届かなかったもの</h2><ul class=\"unreached\">"
                     + "".join(f"<li>{esc(u)}</li>" for u in data["unreached"]) + "</ul>")
-    # Use relative source paths so the page does not reveal a local username.
+    # 絶対パスはページを人に渡すと手元のユーザー名を漏らすので、ページからの相対で書く
     body.append(f'<footer>deepsearch の抜き書き・原文はこのページと同じ場所の {esc(src.name)}/</footer>')
 
     page = f"""<!doctype html>
 <html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
 <title>{esc(data['title'])} 抜き書き</title><style>{CSS}</style></head>
 <body><main>
 {chr(10).join(body)}
 </main></body></html>
 """
     out = topic / "report.html"
-    out.write_text(page, encoding="utf-8")
+    # 一時ファイルに書いてから置き換える。途中で止まっても前のページが壊れずに残る
+    tmp = out.with_name(".report.html.tmp")
+    tmp.write_text(page, encoding="utf-8")
+    os.replace(tmp, out)
     print(f"→ {out}")
     return 0
 
 
 if __name__ == "__main__":
-    # Replace characters unsupported by the terminal encoding instead of crashing.
+    # 抜き書きの頭を出すので、端末の文字コードに無い字（cp932 の à など）で落ちないようにする
     sys.stdout.reconfigure(errors="replace")
     sys.exit(main())
