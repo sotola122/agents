@@ -5,6 +5,7 @@ import datetime as dt
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -283,6 +284,23 @@ class UntrustedInputTests(unittest.TestCase):
         with patch.dict("os.environ", {"DEEPSEARCH_ALLOW_PRIVATE": "1"}):
             self.assertIsNone(fetch.url_problem("http://127.0.0.1/secret"))
             self.assertIn("http(s)", fetch.url_problem("file:///etc/passwd"))
+
+    def test_ocr_language_and_unused_note(self):
+        listed = subprocess.CompletedProcess(
+            ["tesseract"], 0, "List of available languages:\neng\njpn\njpn_vert\n", "")
+        with patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("DEEPSEARCH_OCR_LANG", None)
+            with patch.object(fetch, "run_tool", return_value=listed):
+                self.assertEqual(fetch.ocr_langs(), "jpn+jpn_vert+eng")
+        with patch.dict(os.environ, {"DEEPSEARCH_OCR_LANG": "jpn+eng"}):
+            self.assertEqual(fetch.ocr_langs(), "jpn+eng")
+        with patch.dict(os.environ, {"DEEPSEARCH_OCR_LANG": "eng;rm"}), \
+                patch.object(fetch, "run_tool", return_value=listed), \
+                contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(fetch.ocr_langs(), "jpn+jpn_vert+eng")
+        with patch.object(fetch, "ocr_pdf", return_value=("", "確信度が低い")):
+            text, note = fetch.ocr_if_longer(Path("paper.pdf"), "extracted")
+        self.assertEqual((text, note), ("extracted", "確信度が低い"))
 
     def test_youtube_detection_uses_the_host(self):
         self.assertTrue(fetch.is_youtube("https://www.youtube.com/watch?v=abc"))

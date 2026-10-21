@@ -24,8 +24,8 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 ページ数は設計内容に応じて決め、ユーザーがページ数を指定した場合のみその指定に従います。シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
 
-`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `69b2e1b82c3571af366a7913375714aa5069c652` を基にしたローカルスキルです。
-取り込み済みの修正には、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外と手元・内側の宛先の拒否、YouTube 自動字幕を動画の元の言語に限ること、和文が3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査、検索結果の URL・本文・フィードを他人の入力として扱う検査が含まれます。
+`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `ecb82c71b611872a0f49e783eda3bec987c80d91` を基にしたローカルスキルです。
+取り込み済みの修正には、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外と手元・内側の宛先の拒否、YouTube 自動字幕を動画の元の言語に限ること、和文が3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査、検索結果の URL・本文・フィードを他人の入力として扱う検査、OCR の言語選択と低い確信度の拒否が含まれます。
 スキル本文・補足資料・コード内の説明は英語にし、調査結果・調査マップ・HTMLレポートは日本語で出力します。引用原文は保持し、日本語訳を添えます。
 調査資料は作業プロジェクト内の `.research/<topic>/` に保存します。`/deepsearch <topic>` で原典をたどる調査、`/deepsearch watch <topic>` で登録したRSS/Atomの新着を確認できます。
 資料取得・引用照合・更新確認・引用追跡のスクリプトとMITライセンスを同梱しています。
@@ -36,8 +36,8 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 長くなった orchestrator セッションのトークン消費を抑えるため、タスクの区切りで要約して新しいセッションに切り替えます。
 有効にするには `assets.local.toml` の `[skills]` に `summary = true` を追加します。
 
-Herdrの操作skillは公式リポジトリをcommit `143bf5fd4781d164260c63fe28e7dc08054ad32f`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `916fcf8de029c6cac965b50f3cdb9687cd7d1537` と同一です。進めた差分はゼロサイズ grid のポーリング継続、macOS で端末終了後もサーバを残すこと、リンク付きカーソル移動のクラッシュ修正、Windows OpenSSH 経由の POSIX スクリプト保持です。待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `5bd900d88c80d95f5b145397e45bbeea398b8165`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `143bf5fd4781d164260c63fe28e7dc08054ad32f` と同一です。進めた差分は Windows の SSH 出力が入力を遅らせない修正と、起動確認のテスト安定化です。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
@@ -48,9 +48,9 @@ ponytailのskillは公式リポジトリをcommit `09c434ab73ca43761c5d8b0c5d341
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 直前の pin `84740e3d344b69b4a133201fa519eb37a62a2b2a` からの skill 差分は、`ponytail` の argument-hint に `off` を足したことと、`ponytail-help` に Claude Code の band 操作を足したことです。
 
-natural-japaneseのskillは公式リポジトリをcommit `03bc944a0c4a9f0b2a66eab065b30de5c529bf08`で固定して取り込みます。
+natural-japaneseのskillは公式リポジトリをcommit `a7084032d9bb7dae12d62351bcea3063da11436e`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
-直前の pin `b251b9bdbc95cf5dc3099e69f8a4dbdccf96d91c` からの差分は v1.6.0 の作り直しです。参照は diagnose、manual-checklist、文書タイプ5種に絞り、lint は指摘ごとの直し方と段落ごとの確かめを出し、`newfacts.py` と `paragraphs.py` を追加しました。
+直前の pin `03bc944a0c4a9f0b2a66eab065b30de5c529bf08` からの差分は、英語の言い方を日本語1語に置いた言葉を `scripts/calques.py` と `references/reader-check.md` で見つけることと、書くときの原則4に読み手の分野の呼び名を足したことです。
 
 mattpocock/skills は commit `5beb35b040e3de97e54fa9e386d7e42d15c295c2` で固定します。
 直前の pin `49dd158d1076134a641b33efb035946536778336` から、登録済み skill の本文は変わっていません。動いたのは未登録の `in-progress/chief-of-staff` だけで、日付と commit を引く wiki に記憶を残すようになりました。`ask-matt` はそこへ経路を持たないため pin しません。`writing-for-agents` の本文も変わっていません。

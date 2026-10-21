@@ -46,6 +46,16 @@ TOOL_TIMEOUT = 300
 # OCR にかけるページ数の上限。文字の層が無い古い論文は数十ページに収まる。
 # 何千ページもある PDF で、画像の書き出しが手元のディスクを埋めないようにする。
 OCR_MAX_PAGES = 60
+# Weighted mean of tesseract confidence (0–100). A mismatched language model
+# can return thousands of meaningless characters and pass the length floor.
+# Measured 2026-10-21: a Japanese scan read as eng scores 18–25, as jpn 72–82;
+# older English papers score 87–96.
+OCR_MIN_CONFIDENCE = 50
+# Add these language data packs to eng when they are installed.
+# jpn alone misses vertical text; jpn_vert alone misses horizontal text.
+OCR_EXTRA_LANGS = ("jpn", "jpn_vert")
+# DEEPSEARCH_OCR_LANG is passed to tesseract, so only lang names joined by +.
+OCR_LANG_FORM = re.compile(r"[A-Za-z_]+(\+[A-Za-z_]+)*")
 # 本文ではなく壁に当たったと分かる言い回し。小文字で照合する。
 WALL_PATTERNS = (
     "404 not found",
@@ -347,47 +357,92 @@ def pdf_to_text(pdf: Path) -> str:
     return out.read_text(encoding="utf-8", errors="replace") if out.exists() else ""
 
 
-def ocr_pdf(pdf: Path) -> str:
-    """文字の層が無い PDF（紙を読み取った画像だけの古い論文）を、手元の tesseract で文字にする。
+def ocr_langs() -> str:
+    """Choose tesseract languages from DEEPSEARCH_OCR_LANG or installed data.
 
-    Spencer ら 1995 の PDF は取れたのに pdftotext が1文字しか返さなかった（2026-10-10）。
-    英語だけ（入っている言語データが eng のみ）。1ページずつ 200dpi の画像にして読む。
-    OCR_MAX_PAGES を超えるページは起こさない。
-    pdftoppm か tesseract が無ければ何もせず空を返す（呼び手が FAIL に無いコマンドを書く）。
-    .txt には書かない。書くかどうかは呼び手（ocr_if_longer）が決める。
+    Add jpn and jpn_vert to eng when those packs are installed. Match language
+    names as whole lines so jpn_vert is not mistaken for jpn. Older tesseract
+    prints the list on stderr, so read both streams. Fall back to eng alone
+    when the list cannot be read.
+    """
+    chosen = os.environ.get("DEEPSEARCH_OCR_LANG", "").strip()
+    if chosen:
+        if OCR_LANG_FORM.fullmatch(chosen):
+            return chosen
+        print(f"DEEPSEARCH_OCR_LANG の形が違うので使わない: {clean(chosen)}", file=sys.stderr)
+    res = run_tool(["tesseract", "--list-langs"], capture_output=True, encoding="utf-8", errors="replace")
+    have = set() if res is None else {line.strip() for line in f"{res.stdout}\n{res.stderr}".splitlines()}
+    return "+".join([lang for lang in OCR_EXTRA_LANGS if lang in have] + ["eng"])
+
+
+def ocr_pdf(pdf: Path) -> tuple[str, str]:
+    """OCR an image-only PDF and return (text, reason the text was not used).
+
+    Render at 200 dpi and read with ocr_langs(). Return empty text plus a reason
+    when a page fails or times out, or when the character-weighted confidence is
+    below OCR_MIN_CONFIDENCE. Return empty text and no reason when pdftoppm or
+    tesseract is missing. Do not write the .txt; ocr_if_longer decides that.
     """
     if missing("pdftoppm", "tesseract"):
-        return ""
+        return "", ""
     tmp = pdf.parent / f".{pdf.stem}-ocr"
     tmp.mkdir(exist_ok=True)
-    run_tool(["pdftoppm", "-r", "200", "-l", str(OCR_MAX_PAGES), "-png", str(pdf), str(tmp / "p")],
-             stderr=subprocess.DEVNULL)
-    pages = []
-    for img in sorted(tmp.glob("p-*.png")):
-        res = run_tool(["tesseract", str(img), "-", "-l", "eng"],
-                       capture_output=True, encoding="utf-8", errors="replace")
-        pages.append(f"=== page {img.stem.split('-')[-1]} ===\n{res.stdout if res else ''}")
-        img.unlink()
-    for leftover in tmp.iterdir():  # 時間切れで止めた pdftoppm の書きかけ
-        leftover.unlink()
-    tmp.rmdir()
-    return "\n".join(pages)
+    try:
+        done = run_tool(["pdftoppm", "-r", "200", "-l", str(OCR_MAX_PAGES), "-png", str(pdf), str(tmp / "p")],
+                        stderr=subprocess.DEVNULL)
+        if done is None:
+            return "", "PDF を画像にする途中で時間切れ"
+        langs = ocr_langs()
+        pages, failed, weighted, chars = [], [], 0.0, 0
+        for img in sorted(tmp.glob("p-*.png")):
+            number = img.stem.split("-")[-1]
+            out = tmp / img.stem
+            # Without this setting, Japanese characters are separated by spaces.
+            res = run_tool(["tesseract", str(img), str(out), "-l", langs,
+                            "-c", "preserve_interword_spaces=1",
+                            "-c", "tessedit_create_txt=1", "-c", "tessedit_create_tsv=1"],
+                           capture_output=True, encoding="utf-8", errors="replace")
+            txt, tsv = out.with_suffix(".txt"), out.with_suffix(".tsv")
+            if res is None or res.returncode != 0 or not txt.exists():
+                failed.append(number)
+                continue
+            pages.append(f"=== page {number} ===\n{txt.read_text(encoding='utf-8', errors='replace')}")
+            # TSV columns: confidence is 11th, text is 12th. Non-word rows use -1.
+            for row in tsv.read_text(encoding="utf-8", errors="replace").splitlines()[1:] if tsv.exists() else []:
+                cols = row.split("\t")
+                if len(cols) >= 12 and cols[11].strip():
+                    try:
+                        conf = float(cols[10])
+                    except ValueError:
+                        continue
+                    if conf >= 0:
+                        weighted += conf * len(cols[11].strip())
+                        chars += len(cols[11].strip())
+    finally:
+        for leftover in tmp.iterdir():
+            leftover.unlink()
+        tmp.rmdir()
+    if failed:
+        return "", f"OCR で読めなかったページがある（{','.join(failed)}）"
+    if chars and weighted / chars < OCR_MIN_CONFIDENCE:
+        return "", (f"OCR の確信度が低い（平均 {weighted / chars:.0f}・言語 {langs}）。"
+                    "言語データが合っていないかも（日本語なら tesseract の jpn と jpn_vert）")
+    return "\n".join(pages), ""
 
 
-def ocr_if_longer(pdf: Path, text: str) -> str:
-    """文字の層が薄い PDF を OCR にかけ、OCR のほうが長いときだけ .txt を置き換えて返す。
+def ocr_if_longer(pdf: Path, text: str) -> tuple[str, str]:
+    """Replace extracted text only when OCR is longer, and return any unused-OCR note.
 
-    OCR の道具が無いときや起こせなかったときに、pdftotext が取れた分まで空で上書きしていた
-    （2026-10-20 のレビュー）。OCR の誤りは残るので、.txt の先頭に OCR だと書いて、
-    読む人が原本と照らせるようにする。
+    A failed OCR must not wipe the text pdftotext already recovered. Label a
+    saved OCR transcript so readers can check quotations against the PDF.
     """
-    ocr = ocr_pdf(pdf)
+    ocr, note = ocr_pdf(pdf)
     if len(ocr.strip()) <= len(text.strip()):
-        return text
+        return text, note
     pdf.with_suffix(".txt").write_text(
         f"（OCR で起こした本文。{OCR_MAX_PAGES} ページを超える分は起こしていない。"
         "誤りが残るので、引用は原本の PDF で確かめる）\n\n" + ocr, encoding="utf-8")
-    return ocr
+    return ocr, ""
 
 
 HAS_AX = shutil.which("ax") is not None
@@ -692,6 +747,7 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         return 1
     # メディアタイプは大文字と小文字を区別しない。「Text/Plain」で返すサーバーもある
     ctype = ctype.lower()
+    ocr_note = ""
 
     if not body.strip():
         # 中身の無い 200/202 を返すサーバーがある（Cornell の論文置き場・2026-10-10）。
@@ -704,7 +760,7 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         text = pdf_to_text(saved)
         kept = saved.with_suffix(".txt")
         if len(text.strip()) < 200 and not arxiv_id(url):
-            text = ocr_if_longer(saved, text)  # 文字の層が無い PDF。arXiv は下で HTML 版に切り替える
+            text, ocr_note = ocr_if_longer(saved, text)  # 文字の層が無い PDF。arXiv は下で HTML 版に切り替える
     elif ctype.startswith(("text/plain", "text/markdown", "application/json", "text/csv")):
         # GitHub の README やデータ（raw.githubusercontent.com）はこの形で来る
         # （和田三造の配色のデータで FAIL した・2026-10-10）。中身をそのまま残す。
@@ -725,7 +781,7 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         if pdf_save(url, pdf) and pdf.read_bytes()[:5] == b"%PDF-":
             pdf_text = pdf_to_text(pdf)
             if len(pdf_text.strip()) < 200:
-                pdf_text = ocr_if_longer(pdf, pdf_text)
+                pdf_text, _ = ocr_if_longer(pdf, pdf_text)  # 使えなければ HTML の本文が残る
             pdf_floor = MIN_HTML_CHARS if mostly_cjk(pdf_text) else MIN_TEXT_CHARS
             # PDF の本文が下限に届いたときだけ PDF に切り替える。届かないなら HTML の本文を残す。
             # 先に HTML を消すと、PDF が文字の層の無い画像だったときに両方を失う（2026-10-20 のレビュー）
@@ -777,6 +833,8 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         lacking = missing("pdftotext", "pdftoppm", "tesseract") if saved.suffix == ".pdf" else []
         if lacking:
             reason += f"。{'・'.join(lacking)} が無い"
+        elif ocr_note and saved.suffix == ".pdf":
+            reason += f"。{ocr_note}"
         print(f"FAIL\t{name}\t{reason}")
         return 1
 

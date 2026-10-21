@@ -15,8 +15,8 @@ description: >-
 Explore from unfamiliar vocabulary to original sources. **Preserve originals
 without summarizing them**, and **decide when to stop from evidence, not confidence**.
 
-Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/69b2e1b82c3571af366a7913375714aa5069c652)
-at commit `69b2e1b82c3571af366a7913375714aa5069c652`, under the bundled [MIT license](LICENSE).
+Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/ecb82c71b611872a0f49e783eda3bec987c80d91)
+at commit `ecb82c71b611872a0f49e783eda3bec987c80d91`, under the bundled [MIT license](LICENSE).
 
 ## Language
 
@@ -337,6 +337,9 @@ are optional except when needed for the requested source format.
   User-Agent and keep a returned PDF when that PDF meets the length floor. Save
   PDF plus `.txt` using Poppler/Xpdf `pdftotext -layout`; OCR image-only PDFs with
   `pdftoppm` and `tesseract`, at most 60 pages, and keep the longer extraction.
+  Add installed `jpn` and `jpn_vert` data to English, or use `DEEPSEARCH_OCR_LANG`
+  when it names languages joined by `+`. Do not keep an OCR transcript whose
+  confidence is below 50 or that missed a page; say why in the `FAIL` line.
   The length floor is 3,000 characters for a PDF and 1,000 for HTML; a PDF whose
   non-whitespace text is more than 30% CJK uses the 1,000-character floor. Download
   YouTube captions only with `yt-dlp`, and only for a YouTube host, preserving

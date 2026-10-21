@@ -29,7 +29,7 @@ license = "Unlicense"
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "143bf5fd4781d164260c63fe28e7dc08054ad32f"
+rev = "5bd900d88c80d95f5b145397e45bbeea398b8165"
 license = "Apache-2.0"
 
 [[assets]]
@@ -380,7 +380,7 @@ target = "skills/ponytail-help"
 [[sources]]
 id = "natural-japanese"
 url = "https://github.com/coji/natural-japanese.git"
-rev = "03bc944a0c4a9f0b2a66eab065b30de5c529bf08"
+rev = "a7084032d9bb7dae12d62351bcea3063da11436e"
 license = "MIT"
 
 [[assets]]
