@@ -269,7 +269,7 @@ class DelegationSkillTests(unittest.TestCase):
             source["url"], "https://github.com/coji/natural-japanese.git"
         )
         self.assertEqual(
-            source["rev"], "a7084032d9bb7dae12d62351bcea3063da11436e"
+            source["rev"], "45ef3a06e583d3c90a6a938d51d555112301a133"
         )
         self.assertEqual(source["license"], "MIT")
 

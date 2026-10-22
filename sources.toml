@@ -380,7 +380,7 @@ target = "skills/ponytail-help"
 [[sources]]
 id = "natural-japanese"
 url = "https://github.com/coji/natural-japanese.git"
-rev = "a7084032d9bb7dae12d62351bcea3063da11436e"
+rev = "45ef3a06e583d3c90a6a938d51d555112301a133"
 license = "MIT"
 
 [[assets]]
