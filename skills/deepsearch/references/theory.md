@@ -1,7 +1,7 @@
 # Basis for Deepsearch
 
 This reference preserves the rationale and observations recorded by upstream
-[imozuru](https://github.com/MaryCache/imozuru/tree/ecb82c71b611872a0f49e783eda3bec987c80d91).
+[imozuru](https://github.com/MaryCache/imozuru/tree/9d4c00c2f9d1a7f164accf9625906133e7ccee9e).
 The upstream author collected the originals during a 2026-10-09 trial on search
 methods. These are upstream source claims and trial observations, not new
 verification performed for this adaptation.

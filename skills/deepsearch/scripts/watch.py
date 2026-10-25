@@ -3,7 +3,9 @@
 
 Show each feed's original opening text, without agent-written summaries.
 Refuse non-http(s) URLs and destinations that resolve to a local or private
-address. Inflate gzip responses and reject feeds that declare DOCTYPE or ENTITY.
+address. Resolve again immediately before connecting and connect to that IP.
+When a proxy is in use, this pin does not stop DNS rebinding. Inflate gzip
+responses and reject feeds that declare DOCTYPE or ENTITY.
 
 Usage:
     watch.py add <topic_dir> <url> [name]  Discover and add a feed.
@@ -23,6 +25,7 @@ import codecs
 import datetime as dt
 import email.utils
 import html
+import http.client
 import ipaddress
 import json
 import os
@@ -46,7 +49,7 @@ SEEN_LIMIT = 500
 # フィードやページの大きさの上限。ふつうのフィードは数百 KB に収まる。
 MAX_BYTES = 5_000_000
 
-# ここから UnsafeURL・resolve・url_problem・_Redirect308 までは fetch.py と同じもの。
+# ここから UnsafeURL・resolve・url_problem・_Redirect308・_pinned_connection と接続の差し替えまでは fetch.py と同じもの。
 # -I で動かすとスクリプトの置き場が import の道に入らない（3.11 から -I は -P を含む）ので、写して持つ。
 # 直すときは両方を直す。
 
@@ -55,9 +58,13 @@ class UnsafeURL(Exception):
     """取りに行ってはいけない URL。"""
 
 
-def resolve(host: str) -> set[str]:
-    """ホスト名を引いて IP アドレスの集まりを返す。テストはここを差し替える。"""
-    return {info[4][0] for info in socket.getaddrinfo(host, None)}
+def resolve(host: str) -> list[str]:
+    """ホスト名を引いて IP アドレスを返す。テストはここを差し替える。
+
+    OS が返した順（IPv6 と IPv4 のどちらを先に試すか）を保つ。_pinned_connection はこの順の先頭の種類から、
+    IPv6 と IPv4 を交互につなぐ。
+    """
+    return list(dict.fromkeys(info[4][0] for info in socket.getaddrinfo(host, None)))
 
 
 def url_problem(url: str) -> str | None:
@@ -67,7 +74,9 @@ def url_problem(url: str) -> str | None:
     手元で動いているサービス（開発用のサーバー・ローカルの AI・ブラウザのデバッグ口）の中身を
     sources/ に写してしまう（2026-10-20 のレビュー）。名前を引いた先が全部インターネット上の
     宛先のときだけ通す。10進や16進で書いた IP も、名前を引けば 127.0.0.1 などになるので同じく止まる。
-    名前を引いてから接続するまでの間に引き先を変える手（DNS rebinding）は防げない。
+    名前を引いてから接続するまでの間に引き先を変える手（DNS rebinding）は、_pinned_connection が
+    つなぐ直前に引き直して確かめた IP へじかにつなぐことで防ぐ。
+    プロキシを通すときは名前をプロキシが引くので、この固定では DNS rebinding を防げない。
 
     ホストの部分に「@」か「%」があれば断る。urlsplit は「x@a.example」の a.example を見るが、
     urllib は x@a.example をそのまま引き、「%61」は urllib だけが a に戻す。検査とつなぐ先がずれる。
@@ -134,7 +143,119 @@ class _Redirect308(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, 307 if code == 308 else code, msg, headers, newurl)
 
 
-_OPENER = urllib.request.build_opener(_Redirect308)
+# 宛先が残っているときに1つの宛先を待つ上限（秒）。IPv6 の経路が無い PC では、IPv6 の宛先ごとに
+# 呼び出し側の timeout（fetch は90秒、watch は60秒）まで待ってから IPv4 へ進んでいた（4つの IPv6 で最大6分）
+CONNECT_TRY_SECONDS = 10
+
+
+def _connect_order(addrs: list[str]) -> list[str]:
+    """OS が先に返した種類から、IPv6 と IPv4 を交互に並べる（RFC 8305 の4節）。
+
+    片方の種類に経路が無くても、もう片方を2番目に試せる。
+    """
+    v6 = [a for a in addrs if ":" in a]
+    v4 = [a for a in addrs if ":" not in a]
+    first, second = (v6, v4) if addrs and ":" in addrs[0] else (v4, v6)
+    order = []
+    for i in range(max(len(first), len(second))):
+        order += first[i:i + 1] + second[i:i + 1]
+    return order
+
+
+def _real_timeout(timeout):
+    """既定の timeout の印を、いま使われる秒数（None は待ち続ける）に置き換える。"""
+    return socket.getdefaulttimeout() if timeout is socket._GLOBAL_DEFAULT_TIMEOUT else timeout
+
+
+def _dial(ip: str, port: int, timeout, source_address):
+    """確かめた IP へつなぐ。テストはここを差し替える。"""
+    return socket.create_connection((ip, port), timeout, source_address)
+
+
+def _pinned_connection(host: str, port: int, timeout, source_address):
+    """つなぐ直前に名前を引き直し、確かめた IP へそのままつなぐ。
+
+    url_problem で名前を引いてから urllib がつなぐまでの間に、引き先を 127.0.0.1 などへ
+    変えられると検査をすり抜ける（DNS rebinding）。つなぐ時に引いた結果をもう一度確かめ、
+    その IP にじかにつなぐので、検査した宛先と実際の宛先がずれない。HTTPS の証明書の確認と
+    SNI はホスト名のまま行われる。
+    プロキシを通すときは名前をプロキシが引くので、この固定では DNS rebinding を防げない。
+    """
+    try:
+        addrs = list(resolve(host))
+    except (OSError, UnicodeError, ValueError) as e:
+        raise UnsafeURL(f"ホストを引けない（{e}）")
+    if os.environ.get("DEEPSEARCH_ALLOW_PRIVATE") != "1":
+        for addr in addrs:
+            for ip in _addresses_inside(ipaddress.ip_address(addr.split("%", 1)[0])):
+                if not ip.is_global:
+                    raise UnsafeURL(f"つなぐ直前に引いた先が手元や内側の宛先（{ip}）だった")
+    err = None
+    full = _real_timeout(timeout)
+    order = _connect_order(addrs)
+    cut = []
+    for i, addr in enumerate(order):
+        short = i < len(order) - 1 and (full is None or full > CONNECT_TRY_SECONDS)
+        try:
+            sock = _dial(addr, port, CONNECT_TRY_SECONDS if short else timeout, source_address)
+        except TimeoutError as e:
+            err = e
+            if short:
+                cut.append(addr)
+            continue
+        except OSError as e:
+            err = e
+            continue
+        if short:
+            # create_connection は待ち時間をそのままソケットに残す。つないだあとの読み込みは元の timeout で待つ
+            sock.settimeout(full)
+        return sock
+    # 短く待って切った宛先は、ほかが全部だめだったときだけ元の timeout で待ち直す。10秒より遅くつながる宛先を失わない
+    for addr in cut:
+        try:
+            return _dial(addr, port, timeout, source_address)
+        except OSError as e:
+            err = e
+    raise err or OSError(f"{host} の宛先が無い")
+
+
+class _PinnedMixin:
+    """接続を _pinned_connection で作る。プロキシを通すとき（CONNECT）はプロキシへ素直につなぐ。"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._create_connection = self._pinned_create
+
+    def _pinned_create(self, address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+        if self._tunnel_host:
+            return socket.create_connection(address, timeout, source_address)
+        return _pinned_connection(address[0], address[1], timeout, source_address)
+
+
+class _PinnedHTTPConnection(_PinnedMixin, http.client.HTTPConnection):
+    pass
+
+
+class _PinnedHTTPSConnection(_PinnedMixin, http.client.HTTPSConnection):
+    pass
+
+
+class _PinnedHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, req):
+        if req.has_proxy():
+            return self.do_open(http.client.HTTPConnection, req)
+        return self.do_open(_PinnedHTTPConnection, req)
+
+
+class _PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        kwargs = {"context": self._context}
+        if hasattr(self, "_check_hostname"):  # 3.11 まで
+            kwargs["check_hostname"] = self._check_hostname
+        return self.do_open(_PinnedHTTPSConnection, req, **kwargs)
+
+
+_OPENER = urllib.request.build_opener(_Redirect308, _PinnedHTTPHandler, _PinnedHTTPSHandler)
 
 
 def fetch_final(url: str) -> tuple[bytes, str, str]:

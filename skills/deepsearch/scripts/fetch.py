@@ -1,21 +1,33 @@
 #!/usr/bin/env python3
 """Download one original source and validate it before saving it in sources/.
 
-Check content signatures and extracted length: a successful HTTP request or a
-filename extension does not distinguish an original from an error or login page.
-Refuse non-http(s) URLs and destinations that resolve to a local or private
-address. Save papers and practitioner accounts. YouTube captions become
-timestamped Markdown; X returns FAIL because its original text requires login.
+Check content signatures and extracted length. Refuse non-http(s) URLs and
+destinations that resolve to a local or private address. Immediately before
+connecting, resolve the name again and connect to that checked IP so a DNS
+change between the check and the connection cannot retarget the request.
+When a proxy is in use, the proxy resolves the name, so this pin does not
+stop rebinding. Try IPv6 and IPv4 in interleaved order, and spend at most
+10 seconds on each earlier address when another address remains.
+
+PMC article pages are fetched as Europe PMC JATS XML. Save papers and
+practitioner accounts. YouTube captions become timestamped Markdown; X
+returns FAIL because its original text requires login. When the destination
+directory is named sources/, append the OK or FAIL line to ../fetch-log.jsonl.
 
 Usage:
     fetch.py <sources_dir> <name> <url>
+
 Output (one tab-separated line):
     OK   <name> <saved_file> <character_count> <first_line>
     FAIL <name> <reason>
 """
 
 import codecs
+import contextlib
+import http.client
+import io
 import ipaddress
+import json
 import os
 import re
 import shutil
@@ -26,8 +38,10 @@ import sys
 import tempfile
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from pathlib import Path
+from xml.parsers import expat
 
 # 本文として読める最低の文字数。404 ページや認証の壁は数百〜数千文字に収まる。
 # PDF は英語の論文が多いので高め。HTML は日本語の短い記事を通すため低め
@@ -46,15 +60,14 @@ TOOL_TIMEOUT = 300
 # OCR にかけるページ数の上限。文字の層が無い古い論文は数十ページに収まる。
 # 何千ページもある PDF で、画像の書き出しが手元のディスクを埋めないようにする。
 OCR_MAX_PAGES = 60
-# Weighted mean of tesseract confidence (0–100). A mismatched language model
-# can return thousands of meaningless characters and pass the length floor.
-# Measured 2026-10-21: a Japanese scan read as eng scores 18–25, as jpn 72–82;
-# older English papers score 87–96.
+# OCR の読み取りの確信度（tesseract の 0〜100）の、字数で重みを付けた平均の下限。
+# 言語データが合わないと、意味のない英字の列が数千字返って字数の下限を通ってしまう（#11）。
+# 2026-10-21 の計測: 和書のスキャンを eng で読むと 18〜25、jpn で読むと 72〜82。
+# 英語の古い論文（1987・1993）は 87〜96。合成した縦書き・横書きの和文も同じ分かれ方をした。
 OCR_MIN_CONFIDENCE = 50
-# Add these language data packs to eng when they are installed.
-# jpn alone misses vertical text; jpn_vert alone misses horizontal text.
+# 入っていれば自動で足す言語データ。jpn だけでは縦書きが、jpn_vert だけでは横書きが読めない（#11）
 OCR_EXTRA_LANGS = ("jpn", "jpn_vert")
-# DEEPSEARCH_OCR_LANG is passed to tesseract, so only lang names joined by +.
+# DEEPSEARCH_OCR_LANG で受け付ける形（eng・jpn+eng など）。tesseract の引数に入るので、ほかの字は通さない
 OCR_LANG_FORM = re.compile(r"[A-Za-z_]+(\+[A-Za-z_]+)*")
 # 本文ではなく壁に当たったと分かる言い回し。小文字で照合する。
 WALL_PATTERNS = (
@@ -93,16 +106,132 @@ class _Redirect308(urllib.request.HTTPRedirectHandler):
         return super().redirect_request(req, fp, 307 if code == 308 else code, msg, headers, newurl)
 
 
-_OPENER = urllib.request.build_opener(_Redirect308)
+# 宛先が残っているときに1つの宛先を待つ上限（秒）。IPv6 の経路が無い PC では、IPv6 の宛先ごとに
+# 呼び出し側の timeout（fetch は90秒、watch は60秒）まで待ってから IPv4 へ進んでいた（4つの IPv6 で最大6分）
+CONNECT_TRY_SECONDS = 10
+
+
+def _connect_order(addrs: list[str]) -> list[str]:
+    """OS が先に返した種類から、IPv6 と IPv4 を交互に並べる（RFC 8305 の4節）。
+
+    片方の種類に経路が無くても、もう片方を2番目に試せる。
+    """
+    v6 = [a for a in addrs if ":" in a]
+    v4 = [a for a in addrs if ":" not in a]
+    first, second = (v6, v4) if addrs and ":" in addrs[0] else (v4, v6)
+    order = []
+    for i in range(max(len(first), len(second))):
+        order += first[i:i + 1] + second[i:i + 1]
+    return order
+
+
+def _real_timeout(timeout):
+    """既定の timeout の印を、いま使われる秒数（None は待ち続ける）に置き換える。"""
+    return socket.getdefaulttimeout() if timeout is socket._GLOBAL_DEFAULT_TIMEOUT else timeout
+
+
+def _dial(ip: str, port: int, timeout, source_address):
+    """確かめた IP へつなぐ。テストはここを差し替える。"""
+    return socket.create_connection((ip, port), timeout, source_address)
+
+
+def _pinned_connection(host: str, port: int, timeout, source_address):
+    """つなぐ直前に名前を引き直し、確かめた IP へそのままつなぐ。
+
+    url_problem で名前を引いてから urllib がつなぐまでの間に、引き先を 127.0.0.1 などへ
+    変えられると検査をすり抜ける（DNS rebinding）。つなぐ時に引いた結果をもう一度確かめ、
+    その IP にじかにつなぐので、検査した宛先と実際の宛先がずれない。HTTPS の証明書の確認と
+    SNI はホスト名のまま行われる。
+    プロキシを通すときは名前をプロキシが引くので、この固定では DNS rebinding を防げない。
+    """
+    try:
+        addrs = list(resolve(host))
+    except (OSError, UnicodeError, ValueError) as e:
+        raise UnsafeURL(f"ホストを引けない（{e}）")
+    if os.environ.get("DEEPSEARCH_ALLOW_PRIVATE") != "1":
+        for addr in addrs:
+            for ip in _addresses_inside(ipaddress.ip_address(addr.split("%", 1)[0])):
+                if not ip.is_global:
+                    raise UnsafeURL(f"つなぐ直前に引いた先が手元や内側の宛先（{ip}）だった")
+    err = None
+    full = _real_timeout(timeout)
+    order = _connect_order(addrs)
+    cut = []
+    for i, addr in enumerate(order):
+        short = i < len(order) - 1 and (full is None or full > CONNECT_TRY_SECONDS)
+        try:
+            sock = _dial(addr, port, CONNECT_TRY_SECONDS if short else timeout, source_address)
+        except TimeoutError as e:
+            err = e
+            if short:
+                cut.append(addr)
+            continue
+        except OSError as e:
+            err = e
+            continue
+        if short:
+            # create_connection は待ち時間をそのままソケットに残す。つないだあとの読み込みは元の timeout で待つ
+            sock.settimeout(full)
+        return sock
+    # 短く待って切った宛先は、ほかが全部だめだったときだけ元の timeout で待ち直す。10秒より遅くつながる宛先を失わない
+    for addr in cut:
+        try:
+            return _dial(addr, port, timeout, source_address)
+        except OSError as e:
+            err = e
+    raise err or OSError(f"{host} の宛先が無い")
+
+
+class _PinnedMixin:
+    """接続を _pinned_connection で作る。プロキシを通すとき（CONNECT）はプロキシへ素直につなぐ。"""
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._create_connection = self._pinned_create
+
+    def _pinned_create(self, address, timeout=socket._GLOBAL_DEFAULT_TIMEOUT, source_address=None):
+        if self._tunnel_host:
+            return socket.create_connection(address, timeout, source_address)
+        return _pinned_connection(address[0], address[1], timeout, source_address)
+
+
+class _PinnedHTTPConnection(_PinnedMixin, http.client.HTTPConnection):
+    pass
+
+
+class _PinnedHTTPSConnection(_PinnedMixin, http.client.HTTPSConnection):
+    pass
+
+
+class _PinnedHTTPHandler(urllib.request.HTTPHandler):
+    def http_open(self, req):
+        if req.has_proxy():
+            return self.do_open(http.client.HTTPConnection, req)
+        return self.do_open(_PinnedHTTPConnection, req)
+
+
+class _PinnedHTTPSHandler(urllib.request.HTTPSHandler):
+    def https_open(self, req):
+        kwargs = {"context": self._context}
+        if hasattr(self, "_check_hostname"):  # 3.11 まで
+            kwargs["check_hostname"] = self._check_hostname
+        return self.do_open(_PinnedHTTPSConnection, req, **kwargs)
+
+
+_OPENER = urllib.request.build_opener(_Redirect308, _PinnedHTTPHandler, _PinnedHTTPSHandler)
 
 
 class UnsafeURL(Exception):
     """取りに行ってはいけない URL。呼び手はほかの取得の失敗と同じく FAIL にする。"""
 
 
-def resolve(host: str) -> set[str]:
-    """ホスト名を引いて IP アドレスの集まりを返す。テストはここを差し替える。"""
-    return {info[4][0] for info in socket.getaddrinfo(host, None)}
+def resolve(host: str) -> list[str]:
+    """ホスト名を引いて IP アドレスを返す。テストはここを差し替える。
+
+    OS が返した順（IPv6 と IPv4 のどちらを先に試すか）を保つ。_pinned_connection はこの順の先頭の種類から、
+    IPv6 と IPv4 を交互につなぐ。
+    """
+    return list(dict.fromkeys(info[4][0] for info in socket.getaddrinfo(host, None)))
 
 
 def url_problem(url: str) -> str | None:
@@ -112,7 +241,9 @@ def url_problem(url: str) -> str | None:
     手元で動いているサービス（開発用のサーバー・ローカルの AI・ブラウザのデバッグ口）の中身を
     sources/ に写してしまう（2026-10-20 のレビュー）。名前を引いた先が全部インターネット上の
     宛先のときだけ通す。10進や16進で書いた IP も、名前を引けば 127.0.0.1 などになるので同じく止まる。
-    名前を引いてから接続するまでの間に引き先を変える手（DNS rebinding）は防げない。
+    名前を引いてから接続するまでの間に引き先を変える手（DNS rebinding）は、_pinned_connection が
+    つなぐ直前に引き直して確かめた IP へじかにつなぐことで防ぐ。
+    プロキシを通すときは名前をプロキシが引くので、この固定では DNS rebinding を防げない。
 
     ホストの部分に「@」か「%」があれば断る。urlsplit は「x@a.example」の a.example を見るが、
     urllib は x@a.example をそのまま引き、「%61」は urllib だけが a に戻す。検査とつなぐ先がずれる。
@@ -358,12 +489,12 @@ def pdf_to_text(pdf: Path) -> str:
 
 
 def ocr_langs() -> str:
-    """Choose tesseract languages from DEEPSEARCH_OCR_LANG or installed data.
+    """tesseract に渡す言語。DEEPSEARCH_OCR_LANG があればそれ、無ければ入っている言語データから選ぶ。
 
-    Add jpn and jpn_vert to eng when those packs are installed. Match language
-    names as whole lines so jpn_vert is not mistaken for jpn. Older tesseract
-    prints the list on stderr, so read both streams. Fall back to eng alone
-    when the list cannot be read.
+    jpn と jpn_vert が入っていれば eng に足す。英語の論文を3つで読んでも確信度は下がらなかった
+    （2026-10-21 の計測）。一覧の読み取りに失敗したら eng だけにする＝前と同じ動き。
+    一覧は行ごとに名前と完全に一致するかで見る（「jpn_vert」の行を「jpn」と取り違えない）。
+    古い tesseract は一覧を標準エラーに出すので両方を読む。
     """
     chosen = os.environ.get("DEEPSEARCH_OCR_LANG", "").strip()
     if chosen:
@@ -376,12 +507,15 @@ def ocr_langs() -> str:
 
 
 def ocr_pdf(pdf: Path) -> tuple[str, str]:
-    """OCR an image-only PDF and return (text, reason the text was not used).
+    """文字の層が無い PDF（紙を読み取った画像だけの古い論文）を、手元の tesseract で文字にする。
 
-    Render at 200 dpi and read with ocr_langs(). Return empty text plus a reason
-    when a page fails or times out, or when the character-weighted confidence is
-    below OCR_MIN_CONFIDENCE. Return empty text and no reason when pdftoppm or
-    tesseract is missing. Do not write the .txt; ocr_if_longer decides that.
+    Spencer ら 1995 の PDF は取れたのに pdftotext が1文字しか返さなかった（2026-10-10）。
+    1ページずつ 200dpi の画像にして、ocr_langs() の言語で読む。OCR_MAX_PAGES を超えるページは起こさない。
+    返すのは (本文, 使わなかった理由)。次のときは本文を空にして理由を返す。
+    - 時間切れか失敗で読めなかったページがある。欠けたまま残すと、後半が「原文に無い」と読み違える
+    - 確信度の平均が OCR_MIN_CONFIDENCE より低い。言語データが合わず意味のない字の列になっている（#11）
+    pdftoppm か tesseract が無ければ何もせず空を返す（呼び手が FAIL に無いコマンドを書く）。
+    .txt には書かない。書くかどうかは呼び手（ocr_if_longer）が決める。
     """
     if missing("pdftoppm", "tesseract"):
         return "", ""
@@ -392,12 +526,15 @@ def ocr_pdf(pdf: Path) -> tuple[str, str]:
                         stderr=subprocess.DEVNULL)
         if done is None:
             return "", "PDF を画像にする途中で時間切れ"
+        # 途中で落ちると、書き出せたページの画像だけが残る。残りを OCR すると欠けた本文が成功扱いになる（#14）
+        if done.returncode != 0:
+            return "", f"PDF を画像にする途中で失敗（pdftoppm の終了コード {done.returncode}）"
         langs = ocr_langs()
         pages, failed, weighted, chars = [], [], 0.0, 0
         for img in sorted(tmp.glob("p-*.png")):
             number = img.stem.split("-")[-1]
             out = tmp / img.stem
-            # Without this setting, Japanese characters are separated by spaces.
+            # 字の間の空白を残す設定が無いと、和文の字のあいだに空白が入る（#11）
             res = run_tool(["tesseract", str(img), str(out), "-l", langs,
                             "-c", "preserve_interword_spaces=1",
                             "-c", "tessedit_create_txt=1", "-c", "tessedit_create_tsv=1"],
@@ -407,7 +544,7 @@ def ocr_pdf(pdf: Path) -> tuple[str, str]:
                 failed.append(number)
                 continue
             pages.append(f"=== page {number} ===\n{txt.read_text(encoding='utf-8', errors='replace')}")
-            # TSV columns: confidence is 11th, text is 12th. Non-word rows use -1.
+            # tsv の列: … conf（11列目）・text（12列目）。単語でない行の conf は -1
             for row in tsv.read_text(encoding="utf-8", errors="replace").splitlines()[1:] if tsv.exists() else []:
                 cols = row.split("\t")
                 if len(cols) >= 12 and cols[11].strip():
@@ -419,7 +556,7 @@ def ocr_pdf(pdf: Path) -> tuple[str, str]:
                         weighted += conf * len(cols[11].strip())
                         chars += len(cols[11].strip())
     finally:
-        for leftover in tmp.iterdir():
+        for leftover in tmp.iterdir():  # 読み終えた画像と、時間切れで止めた pdftoppm の書きかけ
             leftover.unlink()
         tmp.rmdir()
     if failed:
@@ -431,10 +568,11 @@ def ocr_pdf(pdf: Path) -> tuple[str, str]:
 
 
 def ocr_if_longer(pdf: Path, text: str) -> tuple[str, str]:
-    """Replace extracted text only when OCR is longer, and return any unused-OCR note.
+    """文字の層が薄い PDF を OCR にかけ、OCR のほうが長いときだけ .txt を置き換えて返す。
 
-    A failed OCR must not wipe the text pdftotext already recovered. Label a
-    saved OCR transcript so readers can check quotations against the PDF.
+    OCR の道具が無いときや起こせなかったときに、pdftotext が取れた分まで空で上書きしていた
+    （2026-10-20 のレビュー）。OCR の誤りは残るので、.txt の先頭に OCR だと書いて、
+    読む人が原本と照らせるようにする。返すのは (本文, OCR を使わなかった理由)。
     """
     ocr, note = ocr_pdf(pdf)
     if len(ocr.strip()) <= len(text.strip()):
@@ -446,6 +584,24 @@ def ocr_if_longer(pdf: Path, text: str) -> tuple[str, str]:
 
 
 HAS_AX = shutil.which("ax") is not None
+
+
+def md_link(text: str, href: str) -> str:
+    """原文のリンクを、開いても危険な処理が動かず markdown の形が崩れないように残す。"""
+    href = href.strip()
+    # JavaScript: や data: のリンクは、.md を開いた先で押すとページの中で動く。http(s) だけ残す。
+    # 全角の「＃」などを含む URL は urlsplit が ValueError を出す。リンク1本でページ全体を FAIL にしない
+    try:
+        scheme = urllib.parse.urlsplit(href).scheme.lower()
+    except ValueError:
+        return text
+    if scheme not in {"http", "https"}:
+        return text
+    # 括弧と空白が URL の中にあると、[文字](URL) の形がそこで切れる
+    href = re.sub(r"[()\s]", lambda m: urllib.parse.quote(m.group(0), safe=""), href)
+    # 「\」を先に符号化する。後にすると、元からある「\]」が「\\]」になって「]」が効き直す
+    text = text.replace("\\", "\\\\").replace("[", r"\[").replace("]", r"\]")
+    return f"[{text}]({href})"
 
 
 class _TextExtractor(HTMLParser):
@@ -493,12 +649,11 @@ class _TextExtractor(HTMLParser):
         elif tag == "a":
             href = (dict(attrs).get("href") or "").strip()
             if href and not href.startswith("#"):
-                full = urllib.parse.urljoin(self.base, href)
-                # JavaScript: や data: のリンクは、.md を開いた先で押すとページの中で動く。http(s) だけ残す
-                if urllib.parse.urlsplit(full).scheme.lower() in {"http", "https"}:
-                    # 括弧と空白が URL の中にあると、[文字](URL) の形がそこで切れる
-                    self.href = re.sub(r"[()\s]", lambda m: f"%{ord(m.group(0)):02X}", full)
-                    self.link_text = []
+                try:
+                    self.href = urllib.parse.urljoin(self.base, href)
+                except ValueError:  # 閉じていない「[」などの壊れた href。リンクにせず文字だけ残す
+                    return
+                self.link_text = []
 
     def handle_endtag(self, tag):
         if tag in self.SKIP:
@@ -511,9 +666,7 @@ class _TextExtractor(HTMLParser):
             self._emit("\n")
         elif tag == "a" and self.href is not None:
             text = " ".join("".join(self.link_text).split())
-            # 「\」を先に符号化する。後にすると、元からある「\]」が「\\]」になって「]」が効き直す
-            text = text.replace("\\", "\\\\").replace("[", r"\[").replace("]", r"\]")
-            self._emit(f"[{text}]({self.href})" if text else "")
+            self._emit(md_link(text, self.href) if text else "")
             self.href = None
 
     def handle_data(self, data):
@@ -668,6 +821,170 @@ def youtube_to_md(url: str, out: Path) -> str:
     return body
 
 
+PMC_PATHS = {"pmc.ncbi.nlm.nih.gov": r"/articles/(PMC\d+)", "www.ncbi.nlm.nih.gov": r"/pmc/articles/(PMC\d+)",
+             "europepmc.org": r"/article/PMC/(PMC\d+)"}
+
+
+def pmc_id(url: str) -> str | None:
+    """PMC の記事の URL なら PMCID を返す。arxiv_id と同じく、URL のどこかではなくホスト名とパスで見る。"""
+    p = urllib.parse.urlsplit(url)
+    pattern = PMC_PATHS.get((p.hostname or "").lower().rstrip("."))
+    m = re.fullmatch(pattern + r"/?", p.path, re.I) if pattern else None
+    return m.group(1).upper() if m else None
+
+
+EUROPE_PMC_XML = "https://www.ebi.ac.uk/europepmc/webservices/rest/{}/fullTextXML"
+# 長い論文にも余裕を持たせつつ、小さな XML でメモリや再帰の上限を使い切らせない。
+JATS_MAX_ELEMENTS = 200_000
+JATS_MAX_DEPTH = 200
+_XLINK_HREF = "{http://www.w3.org/1999/xlink}href"
+# 段落の中の飾りや参照。前後に空白を足すと「Smith et al. ( 2020 )」のように崩れるので、そのままつなぐ
+_JATS_INLINE = {"italic", "bold", "sup", "sub", "sc", "underline", "monospace", "roman", "strike",
+                "overline", "xref", "ext-link", "uri", "named-content", "styled-content",
+                "inline-formula", "abbrev"}
+# 本文の文字ではないもの（図の差し替え用の説明や ID）
+_JATS_SKIP = {"alt-text", "object-id", "graphic", "inline-graphic", "media"}
+# 見出しを持つ入れ物。title が無ければ下の既定の見出しを使う（無いものは見出しなしで中へ）
+_JATS_SECTIONS = {"sec": "", "abstract": "Abstract", "trans-abstract": "Abstract", "ack": "Acknowledgements",
+                  "app": "Appendix", "ref-list": "References", "glossary": "Glossary", "boxed-text": ""}
+
+
+def _local(tag) -> str:
+    return tag.rsplit("}", 1)[-1] if isinstance(tag, str) else ""
+
+
+def _jats_raw(el) -> str:
+    parts = [el.text or ""]
+    for child in el:
+        tag = _local(child.tag)
+        if tag in _JATS_SKIP:
+            inner = ""
+        elif tag == "alternatives":
+            # 同じ式が TeX・MathML・画像で並ぶ。読める TeX を1つだけ残す
+            kids = list(child)
+            pick = next((k for k in kids if _local(k.tag) == "tex-math"), kids[0] if kids else None)
+            inner = _jats_raw(pick) if pick is not None else ""
+        else:
+            inner = _jats_raw(child).strip()
+            href = child.get(_XLINK_HREF)
+            if tag in ("ext-link", "uri") and href and href != inner:
+                inner = md_link(inner, href)
+        parts.append(inner if tag in _JATS_INLINE else f" {inner} ")
+        parts.append(child.tail or "")
+    return "".join(parts)
+
+
+def _jats_flat(el) -> str:
+    """要素の文字を1行にする。文献の <surname>Smith</surname><given-names>J</given-names> も語の間を空ける。"""
+    if el is None:
+        return ""
+    text = " ".join(_jats_raw(el).split())
+    return re.sub(r"([(\[])\s+", r"\1", re.sub(r"\s+([,.;:)\]])", r"\1", text))
+
+
+def _jats_blocks(el, level: int, out: list[str]) -> None:
+    """本文の入れ物をたどり、見出しは1行、段落・図表の説明・文献は1つずつ1行にする。"""
+    for child in el:
+        tag = _local(child.tag)
+        if tag in ("title", "label") or tag in _JATS_SKIP:
+            continue  # 見出しは親が書く
+        if tag in _JATS_SECTIONS:
+            title = _jats_flat(child.find("title")) or _JATS_SECTIONS[tag]
+            label = _jats_flat(child.find("label"))
+            if title:
+                out += ["", "#" * min(level, 6) + " " + " ".join(filter(None, [label, title])), ""]
+            _jats_blocks(child, level + 1 if title else level, out)
+        elif tag in ("p", "disp-formula", "disp-quote", "def-item", "fn", "statement"):
+            line = _jats_flat(child)
+            if line:
+                out.append(line)
+        elif tag in ("list",):
+            out += ["- " + _jats_flat(item) for item in child if _local(item.tag) == "list-item"]
+        elif tag in ("fig", "table-wrap", "supplementary-material"):
+            label = _jats_flat(child.find("label")) or {"fig": "図", "table-wrap": "表"}.get(tag, "補足")
+            caption = _jats_flat(child.find("caption"))
+            out.append(f"[{label}] {caption}".rstrip())
+            for row in child.iter():
+                if _local(row.tag) == "tr":
+                    out.append(" | ".join(_jats_flat(cell) for cell in row))
+            for foot in child.findall("table-wrap-foot"):
+                _jats_blocks(foot, level, out)
+        elif tag == "ref":
+            label = _jats_flat(child.find("label"))
+            cites = [c for c in child if _local(c.tag) != "label"]
+            text = " ".join(_jats_flat(c) for c in cites)
+            doi = next((p.text for p in child.iter() if _local(p.tag) == "pub-id"
+                        and p.get("pub-id-type") == "doi" and p.text), None)
+            if doi and f"doi.org/{doi.strip()}" not in text:
+                text += f" https://doi.org/{doi.strip()}"
+            out.append(" ".join(filter(None, [f"[{label}]" if label else "", text])))
+        else:
+            _jats_blocks(child, level, out)  # body・back・fn-group・notes などはそのまま中へ
+
+
+def jats_to_md(xml: bytes, url: str, xml_url: str) -> str:
+    """Europe PMC の全文 XML（JATS）を、見出し・段落ごとの行にした markdown にする。要約はしない。
+
+    XML をそのまま文字にすると、雑誌名・ID・著者が区切りなく1行目につながって読めなかった
+    （2026-10-19 の試しで Dully 2021 など）。題名と書誌は頭の数行にまとめ、本文は行番号で指せる形にする。
+    """
+    def refuse_entity(*args):
+        raise ValueError("XML が ENTITY を宣言している")
+
+    count = depth = 0
+
+    def start(tag, attrs):
+        nonlocal count, depth
+        count += 1
+        depth += 1
+        if count > JATS_MAX_ELEMENTS or depth > JATS_MAX_DEPTH:
+            raise ValueError("XML の要素数か深さが上限を超えた")
+
+    def end(tag):
+        nonlocal depth
+        depth -= 1
+
+    # JATS の DOCTYPE は許すが、実体の宣言・外部参照は文字コードに関係なく断る。
+    # 木を作る前に上限も検査し、細工した XML でメモリを使い切らせない。外部 DTD は読まない。
+    parser = expat.ParserCreate()
+    parser.EntityDeclHandler = parser.ExternalEntityRefHandler = refuse_entity
+    parser.StartElementHandler, parser.EndElementHandler = start, end
+    parser.Parse(xml, True)
+    root = ET.fromstring(xml)
+    meta = root.find("front/article-meta")
+    if meta is None:
+        meta = ET.Element("article-meta")
+    journal = _jats_flat(root.find("front/journal-meta/journal-title-group/journal-title"))
+    year = next((y.text for y in meta.iter("year") if y.text), "")
+    ids = {a.get("pub-id-type"): (a.text or "").strip() for a in meta.findall("article-id")}
+    requested = pmc_id(url)
+    if requested and any(not re.fullmatch(r"(?:PMC)?" + requested[3:], (a.text or "").strip(), re.I)
+                         for a in meta.findall("article-id") if a.get("pub-id-type") == "pmcid"):
+        raise ValueError("XML の PMCID が要求した記事と違う")
+    authors = []
+    for contrib in meta.iter("contrib"):
+        if contrib.get("contrib-type") != "author":
+            continue
+        name = contrib.find("name")
+        authors.append(" ".join(filter(None, [_jats_flat(name.find("given-names")),
+                                              _jats_flat(name.find("surname"))]))
+                       if name is not None else _jats_flat(contrib.find("collab")))
+    out = [f"# {_jats_flat(meta.find('title-group/article-title')) or url}", "", url,
+           f"本文: Europe PMC の全文 XML（{xml_url}）",
+           " / ".join(filter(None, [journal, year, ids.get("doi") and f"https://doi.org/{ids['doi']}",
+                                    ids.get("pmcid")])),
+           "著者: " + ", ".join(a for a in authors if a)]
+    keywords = [_jats_flat(k) for k in meta.iter("kwd")]
+    if keywords:
+        out.append("キーワード: " + ", ".join(keywords))
+    # 要旨は article-meta の中にあるので、見出しつきの節として本文・巻末と同じ流れに乗せる
+    parts = ET.Element("article")
+    parts.extend([*meta.findall("abstract"), *meta.findall("trans-abstract"),
+                  *(n for n in (root.find("body"), root.find("back")) if n is not None)])
+    _jats_blocks(parts, 2, out)
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(out)).strip() + "\n"
+
+
 def clean(s: str) -> str:
     """端末に出す文字列から、制御文字（色やクリップボードを操る ESC の並び）と改行の仲間を空白にする。
 
@@ -688,12 +1005,37 @@ def first_line(text: str) -> str:
 
 
 def save_verified(saved: Path, kept: Path, destination: Path) -> Path:
-    """検査を通ったファイルだけを、同じファイルシステム内で保存先に移す。"""
-    if saved != kept:
-        saved.replace(destination / saved.name)
-    target = destination / kept.name
-    kept.replace(target)
-    return target
+    """検査済みの原文を移し、途中で失敗したら保存済みの原文を戻す。"""
+    files = [saved, kept] if saved != kept else [kept]
+    files = [p for p in files if p.parent != destination]
+    backups, moved = {}, []
+    # 強制終了や電源断のときは退避した写しが残るだけで、自動では戻らない（その備えが要るなら復旧の記録を残す形にする）
+    try:
+        # PDF と本文の片方だけ新しくなると引用元が食い違うので、両方を退避してから移す。
+        for source in files:
+            target = destination / source.name
+            if target.exists() or target.is_symlink():
+                with tempfile.NamedTemporaryFile(prefix=f".{target.name}-", dir=destination, delete=False) as tmp:
+                    backup = Path(tmp.name)
+                try:
+                    target.replace(backup)
+                except BaseException:
+                    backup.unlink()
+                    raise
+                backups[target] = backup
+        for source in files:
+            target = destination / source.name
+            source.replace(target)
+            moved.append(target)
+    except BaseException:
+        for target in moved:
+            target.unlink()
+        for target, backup in backups.items():
+            backup.replace(target)
+        raise
+    for backup in backups.values():
+        backup.unlink()
+    return destination / kept.name
 
 
 def valid_source_name(name: str) -> bool:
@@ -740,6 +1082,21 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         print(f"OK\t{name}\t{kept}\t{len(body)}\t{first_line(body)}")
         return 0
 
+    pmc = pmc_id(url)
+    if pmc:
+        # PMC の記事ページは urllib には captcha を返す（2026-10-19）。同じ本文を Europe PMC が
+        # 公開の API で全文 XML として配っているので、そちらを正規の別ルートとして取る
+        xml_url = EUROPE_PMC_XML.format(pmc)
+        try:
+            text = jats_to_md(download(xml_url)[0], url, xml_url)
+        except Exception as e:  # 全文が無い（OA でない）と 404 などが返る。XML が壊れていても同じく取れない
+            print(f"FAIL\t{name}\tEurope PMC に全文 XML が無い（{type(e).__name__}: {clean(str(e))}）。"
+                  "PMC は captcha なので、ブラウザで開いてもらう候補")
+            return 1
+        kept = saved = sources / f"{name}.md"
+        kept.write_text(text, encoding="utf-8")
+        return verify_and_save(name, text, saved, kept, destination)
+
     try:
         body, ctype = download(url)
     except Exception as e:  # HTTP エラーも接続失敗も、呼び手にとっては同じ「取れない」
@@ -747,7 +1104,7 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         return 1
     # メディアタイプは大文字と小文字を区別しない。「Text/Plain」で返すサーバーもある
     ctype = ctype.lower()
-    ocr_note = ""
+    ocr_note = ""  # OCR の結果を使わなかった理由。FAIL の理由に添える
 
     if not body.strip():
         # 中身の無い 200/202 を返すサーバーがある（Cornell の論文置き場・2026-10-10）。
@@ -821,6 +1178,12 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         else:
             trial.unlink(missing_ok=True)
 
+    return verify_and_save(name, text, saved, kept, destination, ocr_note)
+
+
+def verify_and_save(name: str, text: str, saved: Path, kept: Path, destination: Path,
+                    ocr_note: str = "") -> int:
+    """短すぎる本文と壁を FAIL にし、通ったものだけを保存先に移して OK を出す。"""
     # PDF は英語の論文を基準に高い下限。和文の PDF だけは HTML と同じ下限にする
     floor = MIN_TEXT_CHARS if saved.suffix == ".pdf" and not mostly_cjk(text) else MIN_HTML_CHARS
     head = text[:4000].lower()
@@ -854,8 +1217,41 @@ def main() -> int:
     sources.mkdir(parents=True, exist_ok=True)
     # 変換や FAIL の後始末は一時置き場だけで行う。同名の原文を検査前に上書きしない。
     # 保存先の中に作るので、成功時の replace はファイルシステムをまたがない。
-    with tempfile.TemporaryDirectory(prefix=".deepsearch-fetch-", dir=sources) as tmp:
-        return fetch_source(Path(tmp), name, url, sources)
+    # 結果の行は画面に出すのと同じものを取得の記録にも残す。詳細レポート（digest.py）が
+    # 検索で挙がった URL と突き合わせて〔保存〕〔取得失敗〕を付ける。URL は OK の行に出ないので、ここで書く
+    buf = io.StringIO()
+    try:
+        with tempfile.TemporaryDirectory(prefix=".deepsearch-fetch-", dir=sources) as tmp, \
+                contextlib.redirect_stdout(buf):
+            code = fetch_source(Path(tmp), name, url, sources)
+    finally:
+        sys.stdout.write(buf.getvalue())
+    record_fetch(sources, name, url, buf.getvalue())
+    return code
+
+
+def record_fetch(sources: Path, name: str, url: str, printed: str) -> None:
+    """最後の OK/FAIL の行を、調べものの置き場の fetch-log.jsonl に1行足す。書けなくても取得の結果は変えない。
+
+    置き場は sources/ の親。sources/ には原文だけを置く決まりなので、記録は外に出す。
+    保存先が sources という名前でないとき（手で別の場所を指したとき）は、親が何か分からないので書かない。
+    """
+    if sources.name != "sources":
+        return
+    lines = [l for l in printed.splitlines() if l.startswith(("OK\t", "FAIL\t"))]
+    if not lines:
+        return
+    parts = lines[-1].split("\t")
+    entry = {"url": url, "name": name, "status": parts[0]}
+    if parts[0] == "OK" and len(parts) > 2:
+        entry["file"] = Path(parts[2]).name
+    elif len(parts) > 2:
+        entry["reason"] = parts[2]
+    try:
+        with (sources.parent / "fetch-log.jsonl").open("a", encoding="utf-8") as f:
+            f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    except OSError:
+        pass
 
 
 if __name__ == "__main__":

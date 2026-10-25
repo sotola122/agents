@@ -13,6 +13,7 @@ Usage:
     chain.py author <name or author ID> [-n 20]
         Find an author's works, most cited first. A name search also prints other
         candidates as 「# 別の候補」 so a different person can be requested by ID.
+    Add --log <topic_dir> --round N to append the listed works to queries.jsonl.
 Output: tab-separated year, citation count, ID, title, DOI, and open-access PDF.
 """
 
@@ -145,10 +146,30 @@ def main() -> int:
             return 2
         n = int(value)
         del args[i:i + 2]
+    log_topic, log_round = None, None
+    if "--log" in args:
+        i = args.index("--log")
+        if i + 1 >= len(args):
+            print("--log には調べものの置き場を書く", file=sys.stderr)
+            return 2
+        log_topic = args[i + 1]
+        del args[i:i + 2]
+        if "--round" not in args:
+            print("--log には --round N も付ける", file=sys.stderr)
+            return 2
+    if "--round" in args:
+        i = args.index("--round")
+        value = args[i + 1] if i + 1 < len(args) else ""
+        if not re.fullmatch(r"[0-9]+", value):
+            print("--round には周の数を書く", file=sys.stderr)
+            return 2
+        log_round = int(value)
+        del args[i:i + 2]
     if len(args) < 2:
         print(__doc__, file=sys.stderr)
         return 2
     cmd, key = args[0], " ".join(args[1:])
+    shown: list[dict] = []
 
     if cmd == "find":
         # 題名のときは候補を全部見せる。どれが本体かを読み手が確かめられるように。
@@ -157,6 +178,7 @@ def main() -> int:
             print(f"候補なし: {clean(key)}（DOI で引き直すか、題名の語を減らす）")
         for w in hits:
             print(row(w))
+        shown += hits
     elif cmd in ("refs", "cites"):
         # 応答の ID も次の問い合わせに入るので、形を確かめてから使う
         wid = (resolve(key).get("id") or "").rsplit("/", 1)[-1]
@@ -168,6 +190,7 @@ def main() -> int:
         print(f"# {cmd} {wid} 全{clean(res['meta']['count'])}本中 上位{len(res['results'])}本")
         for w in res["results"]:
             print(row(w))
+        shown += res["results"]
     elif cmd == "author":
         # 著者 ID（A と数字）ならその人を直接引く。名前なら検索の1位を使い、ほかの候補も並べる。
         # 名前だけでは同姓同名を見分けられないので、別人だったら候補の ID で引き直せるようにする
@@ -188,10 +211,43 @@ def main() -> int:
                   **{"per-page": n}, select=FIELDS)
         for w in res["results"]:
             print(row(w))
+        shown += res["results"]
     else:
         print(__doc__, file=sys.stderr)
         return 2
+    if log_topic:
+        log(log_topic, log_round, cmd, key, shown)
     return 0
+
+
+def log(topic: str, round_: int, cmd: str, key: str, works: list[dict]) -> None:
+    """出した一覧を queries.jsonl に足す。URL は DOI を先に、無ければ OpenAlex の頁。無料 PDF も照合に使う。"""
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import digest  # 同じフォルダ。--log を使うときだけ読む
+
+    def http_url(u):
+        if not isinstance(u, str):
+            return False
+        try:
+            return urllib.parse.urlsplit(u).scheme in ("http", "https")
+        except ValueError:
+            return False
+
+    hits = []
+    for w in works:
+        location = w.get("best_oa_location")
+        oa = location.get("pdf_url") if isinstance(location, dict) else None
+        url = next((u for u in (w.get("doi"), w.get("id")) if http_url(u)), None)
+        if not url:
+            continue
+        hit = {"title": clean(w.get("display_name") or ""), "url": url}
+        if http_url(oa):
+            hit["also"] = [oa]
+        hits.append(hit)
+    record = digest.normalize_record({
+        "round": round_, "by": "chain.py", "method": cmd, "query": key, "hits": hits}, None, None)
+    digest.append_records(Path(topic).expanduser(), [record])
 
 
 if __name__ == "__main__":

@@ -51,12 +51,18 @@ class DeepsearchTests(unittest.TestCase):
             source.write_text(original + "\n", encoding="utf-8")
             extracts = topic / "extracts.json"
             extracts.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+            (topic / "fetch-log.jsonl").write_text(
+                json.dumps({"url": "https://example.test/paper", "name": "source",
+                            "status": "OK", "file": "source.txt"},
+                           ensure_ascii=False) + "\n",
+                encoding="utf-8")
             with patch.object(sys, "argv", ["report.py", str(topic)]), \
                     contextlib.redirect_stdout(io.StringIO()):
                 self.assertEqual(report.main(), 0)
             output = topic / "report.html"
             page = output.read_text(encoding="utf-8")
-            for expected in ('lang="ja"', "止めた理由", "前後を読む", "訳",
+            for expected in ('lang="ja"', "調査を区切った理由", "根拠あり", "前後を読む", "訳",
+                             "元のページを開く", "https://example.test/paper",
                              original, translation, "deepsearch"):
                 self.assertIn(expected, page)
             self.assertEqual(source.read_text(encoding="utf-8"), original + "\n")
@@ -284,6 +290,19 @@ class UntrustedInputTests(unittest.TestCase):
         with patch.dict("os.environ", {"DEEPSEARCH_ALLOW_PRIVATE": "1"}):
             self.assertIsNone(fetch.url_problem("http://127.0.0.1/secret"))
             self.assertIn("http(s)", fetch.url_problem("file:///etc/passwd"))
+
+    def test_connect_time_resolution_refuses_a_private_address(self):
+        with patch.object(fetch, "resolve", return_value=["127.0.0.1"]):
+            with self.assertRaises(fetch.UnsafeURL) as caught:
+                fetch._pinned_connection("example.test", 443, 5, None)
+        self.assertIn("手元や内側", str(caught.exception))
+        self.assertEqual(
+            fetch._connect_order(["2001:db8::1", "2001:db8::2", "1.1.1.1"]),
+            ["2001:db8::1", "1.1.1.1", "2001:db8::2"])
+        self.assertEqual(
+            fetch.pmc_id("https://www.ncbi.nlm.nih.gov/pmc/articles/PMC2655834/"),
+            "PMC2655834")
+        self.assertIsNone(fetch.pmc_id("https://example.test/pmc/articles/PMC1"))
 
     def test_ocr_language_and_unused_note(self):
         listed = subprocess.CompletedProcess(
