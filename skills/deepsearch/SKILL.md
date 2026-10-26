@@ -15,8 +15,8 @@ description: >-
 Explore from unfamiliar vocabulary to original sources. **Preserve originals
 without summarizing them**, and **decide when to stop from evidence, not confidence**.
 
-Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/9d4c00c2f9d1a7f164accf9625906133e7ccee9e)
-at commit `9d4c00c2f9d1a7f164accf9625906133e7ccee9e`, under the bundled [MIT license](LICENSE).
+Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/659f46cdd25a4f969193642b9f368859a16ae0af)
+at commit `659f46cdd25a4f969193642b9f368859a16ae0af`, under the bundled [MIT license](LICENSE).
 
 ## Language
 
@@ -415,6 +415,9 @@ are optional except when needed for the requested source format.
   that exist in the source file; generate the reading page unless `--check` is
   supplied. Replace an existing page only after the new page is fully written.
   Link each excerpt to its source page from the quote, the map, or `fetch-log.jsonl`.
+  A Markdown excerpt may omit the list marker on each line. A leading hyphen in
+  extracted PDF text stays part of the text. Saved text uses LF newlines.
+  `fetch.py` refuses to replace a directory that has the same name as a source file.
 - `scripts/digest.py add <topic_dir> [--round N] [--by name]`: append search-hit
   JSON from stdin to `queries.jsonl`. `scripts/digest.py <topic_dir> [--check]`
   verifies every explanatory sentence against its quotes and writes `digest.html`.

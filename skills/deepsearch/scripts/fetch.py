@@ -54,6 +54,8 @@ CJK_RATIO_FOR_PDF = 0.3
 # 和文の字＝かな・漢字・全角の英数字と記号
 _CJK = re.compile(r"[\u3000-\u30ff\u3400-\u9fff\uf900-\ufaff\uff00-\uffef]")
 MAX_BYTES = 40_000_000
+# Saved text uses LF. On Windows, write_text otherwise turns \n into \r\n.
+SOURCE_NEWLINE = "\n"
 # 外のコマンド（pdftotext・pdftoppm・tesseract・ax・yt-dlp）1回の時間の上限（秒）。
 # 細工した PDF やページで止まらなくなるのを防ぐ。ふつうの論文は数秒〜数十秒で終わる。
 TOOL_TIMEOUT = 300
@@ -579,7 +581,7 @@ def ocr_if_longer(pdf: Path, text: str) -> tuple[str, str]:
         return text, note
     pdf.with_suffix(".txt").write_text(
         f"（OCR で起こした本文。{OCR_MAX_PAGES} ページを超える分は起こしていない。"
-        "誤りが残るので、引用は原本の PDF で確かめる）\n\n" + ocr, encoding="utf-8")
+        "誤りが残るので、引用は原本の PDF で確かめる）\n\n" + ocr, encoding="utf-8", newline=SOURCE_NEWLINE)
     return ocr, ""
 
 
@@ -712,7 +714,7 @@ def html_to_md(url: str, out: Path, body: bytes | None = None, ctype: str = "") 
         parser = _TextExtractor(url)
         parser.feed(decode_text(body, ctype))
         text = parser.text()
-    out.write_text(text, encoding="utf-8")
+    out.write_text(text, encoding="utf-8", newline=SOURCE_NEWLINE)
     return text
 
 
@@ -817,7 +819,7 @@ def youtube_to_md(url: str, out: Path) -> str:
     info = " / ".join(head[1:3]) if len(head) > 1 else ""
     body = "\n".join(lines)
     out.write_text(f"# {title}\n\n{url}\n{info}\n字幕: {kind + ' ' + vtts[0].name if vtts else 'なし'}\n\n{body}\n",
-                   encoding="utf-8")
+                   encoding="utf-8", newline=SOURCE_NEWLINE)
     return body
 
 
@@ -1008,6 +1010,12 @@ def save_verified(saved: Path, kept: Path, destination: Path) -> Path:
     """検査済みの原文を移し、途中で失敗したら保存済みの原文を戻す。"""
     files = [saved, kept] if saved != kept else [kept]
     files = [p for p in files if p.parent != destination]
+    # Refuse a same-named directory before moving anything. Windows os.replace
+    # will move a directory aside, and the cleanup then cannot delete it.
+    for source in files:
+        target = destination / source.name
+        if target.is_dir() and not target.is_symlink():
+            raise IsADirectoryError(f"保存先に同じ名前のフォルダがある: {target}")
     backups, moved = {}, []
     # 強制終了や電源断のときは退避した写しが残るだけで、自動では戻らない（その備えが要るなら復旧の記録を残す形にする）
     try:
@@ -1094,7 +1102,7 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
                   "PMC は captcha なので、ブラウザで開いてもらう候補")
             return 1
         kept = saved = sources / f"{name}.md"
-        kept.write_text(text, encoding="utf-8")
+        kept.write_text(text, encoding="utf-8", newline=SOURCE_NEWLINE)
         return verify_and_save(name, text, saved, kept, destination)
 
     try:
@@ -1126,7 +1134,7 @@ def fetch_source(sources: Path, name: str, url: str, destination: Path) -> int:
         ext = ".json" if "json" in ctype else ".csv" if "csv" in ctype else ".md"
         kept = saved = sources / f"{name}{ext}"
         text = decode_text(body, ctype)
-        kept.write_text(text, encoding="utf-8")
+        kept.write_text(text, encoding="utf-8", newline=SOURCE_NEWLINE)
     elif "html" in ctype or body.lstrip()[:1] == b"<":
         kept = sources / f"{name}.md"
         text = html_to_md(url, kept, body, ctype)

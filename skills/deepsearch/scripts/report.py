@@ -4,8 +4,10 @@
 Preserve original passages instead of replacing them with summaries. Stop without
 generating HTML if any excerpt does not match its specified original source lines.
 Accept only line numbers that fall inside the source file. Replace report.html
-only after the new page is fully written. Older statuses 付いた, 一部だけ, and
-付かなかった are shown as 根拠あり, 一部のみ, and 根拠なし.
+only after the new page is fully written. For Markdown, an excerpt may omit the
+list marker on each line. A leading hyphen in extracted PDF text stays part of
+the text. Older statuses 付いた, 一部だけ, and 付かなかった are shown as
+根拠あり, 一部のみ, and 根拠なし.
 
 Link each excerpt to its source page from quote.url, otherwise from the map's
 source table, otherwise from fetch-log.jsonl. Accept only complete http(s) URLs.
@@ -76,22 +78,32 @@ def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
         return False, [], 0, 0
     start = max(1, first - 2)
     end = min(len(lines), last + 2)
-    # ここから先は、検査を通った first・last だけを使う
-    region = norm(" ".join(lines[start - 1:end]))
+    # Joining with spaces strips a list marker only on the first line. For
+    # Markdown, also compare a form that strips a marker on every line. Do not
+    # do that for extracted PDF text: a leading hyphen can be a minus sign.
+    window = lines[start - 1:end]
+    regions = [norm(" ".join(window))]
+    if path.suffix.lower() == ".md":
+        regions.append(norm("\n".join(window)))
     # 2段組の PDF は左右の段が1行に混ざり、何行かにまたがる文はそのままでは照合できない
     # （Yoshida 2008 で起きた）。抜き書きを「…」で区切れば、区切りごとに順に照らす。
     # 区切りはページにも「…」として残るので、省いたことが読む人に見える。
     pieces = [norm(p) for p in q["text"].split("…") if norm(p)]
-    ok, pos = bool(pieces), 0
-    for piece in pieces:
-        at = region.find(piece, pos)
-        if at < 0:
-            ok = False
-            break
-        pos = at + len(piece)
+    ok = bool(pieces) and any(_in_order(pieces, region) for region in regions)
     c0 = max(1, q["line"] - CONTEXT_LINES)
     c1 = min(len(lines), last + CONTEXT_LINES)
     return ok, lines[c0 - 1:c1], c0, c1
+
+
+def _in_order(pieces: list[str], region: str) -> bool:
+    """True when each piece appears in region after the previous piece."""
+    pos = 0
+    for piece in pieces:
+        at = region.find(piece, pos)
+        if at < 0:
+            return False
+        pos = at + len(piece)
+    return True
 
 
 def esc(s: str) -> str:

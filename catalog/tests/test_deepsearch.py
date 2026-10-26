@@ -280,6 +280,33 @@ class ExcerptBoundaryTests(unittest.TestCase):
             self.assertTrue(report.verify(sources, {"file": "paper.md", "line": 1,
                                                      "end": None, "text": "Original sentence"})[0])
 
+    def test_markdown_list_quotes_drop_markers_and_pdf_hyphens_stay(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp) / "topic" / "sources"
+            sources.mkdir(parents=True)
+            (sources / "notes.md").write_text("- first item\n- second item\n", encoding="utf-8")
+            (sources / "dose.txt").write_text("- 5 mg\n- 10 mg\n", encoding="utf-8")
+            spanned = {"line": 1, "end": 2, "text": "first item second item"}
+            self.assertTrue(report.verify(sources, {"file": "notes.md", **spanned})[0])
+            self.assertFalse(report.verify(sources, {"file": "dose.txt", "line": 1, "end": 2,
+                                                      "text": "5 mg 10 mg"})[0])
+            self.assertTrue(report.verify(sources, {"file": "dose.txt", "line": 1, "end": 2,
+                                                     "text": "5 mg - 10 mg"})[0])
+
+    def test_save_refuses_to_replace_a_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            destination = Path(tmp) / "sources"
+            staging = Path(tmp) / "staging"
+            destination.mkdir()
+            staging.mkdir()
+            (destination / "paper.md").mkdir()
+            saved = staging / "paper.md"
+            saved.write_text("original text\n", encoding="utf-8")
+            with self.assertRaises(IsADirectoryError):
+                fetch.save_verified(saved, saved, destination)
+            self.assertTrue((destination / "paper.md").is_dir())
+            self.assertTrue(saved.is_file())
+
 
 class UntrustedInputTests(unittest.TestCase):
     def test_private_and_non_http_urls_are_refused(self):
