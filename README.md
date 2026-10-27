@@ -48,12 +48,12 @@ ponytailのskillは公式リポジトリをcommit `09c434ab73ca43761c5d8b0c5d341
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 直前の pin `84740e3d344b69b4a133201fa519eb37a62a2b2a` からの skill 差分は、`ponytail` の argument-hint に `off` を足したことと、`ponytail-help` に Claude Code の band 操作を足したことです。
 
-natural-japaneseのskillは公式リポジトリをcommit `7d23ad10af4b850b8dfeb6ef19b24335ad37922b`で固定して取り込みます。
+natural-japaneseのskillは公式リポジトリをcommit `c7dd502a6c93428ab5bd7cac7e993643a7391a21`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
-`skills/natural-japanese` の tree は直前の pin `a88b8e92d38cf5b339950752faba1da5ec1f49f4` と同一です。進めた差分は、スキルの外にある Cursor Marketplace 用の manifest とロゴです。
+直前の pin `7d23ad10af4b850b8dfeb6ef19b24335ad37922b` からの差分は、ふだん使う外来語（バージョン、コピー、ファイル、アップデート）を漢語に言い換えないことと、和語に開きすぎて組み合わせがずれる場合も直すことです。
 
-mattpocock/skills は commit `5beb35b040e3de97e54fa9e386d7e42d15c295c2` で固定します。
-直前の pin `49dd158d1076134a641b33efb035946536778336` から、登録済み skill の本文は変わっていません。動いたのは未登録の `in-progress/chief-of-staff` だけで、日付と commit を引く wiki に記憶を残すようになりました。`ask-matt` はそこへ経路を持たないため pin しません。`writing-for-agents` の本文も変わっていません。
+mattpocock/skills は commit `59db609eb1e18aaf59b63284d0e52255aff0c63c` で固定します。
+直前の pin `5beb35b040e3de97e54fa9e386d7e42d15c295c2` から変わった登録済み skill は `setup-matt-pocock-skills` だけです。GitHub か GitLab を選んだときに到達できる remote を先に用意すること、issue を閉じる前にコメントを残すこと、自分のリポジトリ以外へ issue を作らないこと、legacy の `CONTEXT.md` を `GLOSSARY.md` へ移す提案が足されています。`writing-for-agents` の本文は変わっていません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
