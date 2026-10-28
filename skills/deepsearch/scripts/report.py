@@ -4,9 +4,10 @@
 Preserve original passages instead of replacing them with summaries. Stop without
 generating HTML if any excerpt does not match its specified original source lines.
 Accept only line numbers that fall inside the source file. Replace report.html
-only after the new page is fully written. For Markdown, an excerpt may omit the
-list marker on each line. A leading hyphen in extracted PDF text stays part of
-the text. Older statuses 付いた, 一部だけ, and 付かなかった are shown as
+only after the new page is fully written. For Markdown, an excerpt may omit a
+list marker on each line, except a hyphen immediately before a number. That
+hyphen may be a minus sign, including in Markdown, so copy it with the number.
+Older statuses 付いた, 一部だけ, and 付かなかった are shown as
 根拠あり, 一部のみ, and 根拠なし.
 
 Link each excerpt to its source page from quote.url, otherwise from the map's
@@ -45,10 +46,24 @@ OLD_STATUS = {"付いた": "根拠あり", "一部だけ": "一部のみ", "付�
 # 前後に見せる行数。抜き書きがどんな流れの中にあったかを、ページの中で開いて確かめられるように。
 CONTEXT_LINES = 6
 
+# 負号として扱う字。PDF は U+2212 を、和文は全角の U+FF0D を、組版された英文は en dash（U+2013）を使うことがある
+MINUS = ("-", "\u2212", "\uff0d", "\u2013")
+# 符号つきの数の始まり。「.」だけでは数にしない（「- .NET 8」の「.NET」を負号の後ろと見なさない）
+SIGNED_NUMBER = re.compile(r"[.．]?\d")
+# 負号の直前にこの字があれば、語の中のハイフンか範囲（COVID-19・18-65・50%–60%・行末で切った「period-」）として扱う。
+# 和文の「気温は－5度」を通さないよう、仮名や漢字は含めない
+WORD_CHAR = re.compile(r"[A-Za-z0-9０-９Ａ-Ｚａ-ｚ%％°]")
+# 照合に落ちたときの案内。行番号のずれと思って行を直しても通らないので、負号の決まりをここで知らせる
+MINUS_HINT = ("数で始まる抜き書きは、原文でその直前に負号やダッシュ（-・−・－・–）があれば、その記号ごと写す。"
+              "数で始まる箇条書きの項目も「- 」ごと写す（負号と見分けられないため）")
+
 
 def norm(s: str) -> str:
-    """照合用に空白・改行・箇条書きの印をそろえる。文字そのものは変えない。"""
-    s = re.sub(r"(?m)^\s*[-*]\s+", " ", s)
+    """照合用に空白・改行・箇条書きの印をそろえる。文字そのものは変えない。
+
+    数が続く行頭の「- 」は負号かもしれないので残す。
+    """
+    s = re.sub(r"(?m)^\s*(?:\*|-(?!\s*[.．]?\d))\s+", " ", s)
     return re.sub(r"\s+", " ", s).strip()
 
 
@@ -79,8 +94,13 @@ def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
     start = max(1, first - 2)
     end = min(len(lines), last + 2)
     # Joining with spaces strips a list marker only on the first line. For
-    # Markdown, also compare a form that strips a marker on every line. Do not
-    # do that for extracted PDF text: a leading hyphen can be a minus sign.
+    # Markdown, also compare a form that strips a marker on every line. Keep
+    # both forms so an excerpt that copied the marker still matches.
+    # A leading "- " before a number may be a minus sign. fetch.py also saves
+    # text/plain as .md, so the suffix cannot tell them apart. norm() keeps
+    # that hyphen, and _in_order() rejects an excerpt that starts immediately
+    # after it. A list item that starts with a number matches only when the
+    # excerpt includes the "- ".
     window = lines[start - 1:end]
     regions = [norm(" ".join(window))]
     if path.suffix.lower() == ".md":
@@ -96,14 +116,36 @@ def verify(src_dir: Path, q: dict) -> tuple[bool, list[str], int, int]:
 
 
 def _in_order(pieces: list[str], region: str) -> bool:
-    """True when each piece appears in region after the previous piece."""
+    """True when each piece appears in region after the previous piece.
+
+    A piece that starts with a number does not count when it sits immediately
+    after a minus sign, so "5 mg" does not match inside "- 5 mg".
+    """
+    signed = [bool(SIGNED_NUMBER.match(p)) for p in pieces]
     pos = 0
-    for piece in pieces:
+    for piece, number in zip(pieces, signed):
         at = region.find(piece, pos)
+        while at >= 0 and number and _after_minus(region, at):
+            at = region.find(piece, at + 1)
         if at < 0:
             return False
         pos = at + len(piece)
     return True
+
+
+def _after_minus(region: str, at: int) -> bool:
+    """True when the non-space character before at is a minus sign.
+
+    A hyphen immediately after a letter or digit is part of a word, not a sign.
+    An en dash with a space before the number is a range or a parenthetical dash.
+    A hyphen with a space still counts as a minus, including Markdown "- 5 mg".
+    """
+    head = region[:at].rstrip()
+    if not head.endswith(MINUS):
+        return False
+    if head.endswith("\u2013") and len(head) != at:
+        return False
+    return not WORD_CHAR.fullmatch(head[-2:-1] or " ")
 
 
 def esc(s: str) -> str:
@@ -329,17 +371,20 @@ def main() -> int:
     data = json.loads((topic / "extracts.json").read_text(encoding="utf-8"))
     src = topic / "sources"
 
-    bad, rendered = [], {}
+    bad, rendered, signed_bad = [], {}, False
     groups = [("claims", c) for c in data["claims"]] + [("dis", d) for d in data.get("disagreements", [])]
     for _, g in groups:
         for q in g.get("quotes", []):
             ok, ctx, c0, _ = verify(src, q)
             if not ok:
                 bad.append(f"{q['file']}:{q['line']}  「{q['text'][:40]}…」")
+                signed_bad = signed_bad or any(SIGNED_NUMBER.match(norm(p)) for p in q["text"].split("…"))
             rendered[id(q)] = (ctx, c0)
     if bad:
         print("原文に見つからない抜き書きがある（言い換えか、行番号のずれ）:")
         print("\n".join("  " + b for b in bad))
+        if signed_bad:  # 行番号のずれや言い換えで落ちたときにまで出すと、原因を取り違える
+            print(MINUS_HINT)
         return 1
     total = sum(len(g.get("quotes", [])) for _, g in groups)
     print(f"照合 OK: 抜き書き {total} 件がすべて原文のとおり")

@@ -280,7 +280,7 @@ class ExcerptBoundaryTests(unittest.TestCase):
             self.assertTrue(report.verify(sources, {"file": "paper.md", "line": 1,
                                                      "end": None, "text": "Original sentence"})[0])
 
-    def test_markdown_list_quotes_drop_markers_and_pdf_hyphens_stay(self):
+    def test_markdown_list_quotes_drop_markers_and_signed_numbers_keep_the_minus(self):
         with tempfile.TemporaryDirectory() as tmp:
             sources = Path(tmp) / "topic" / "sources"
             sources.mkdir(parents=True)
@@ -290,8 +290,19 @@ class ExcerptBoundaryTests(unittest.TestCase):
             self.assertTrue(report.verify(sources, {"file": "notes.md", **spanned})[0])
             self.assertFalse(report.verify(sources, {"file": "dose.txt", "line": 1, "end": 2,
                                                       "text": "5 mg 10 mg"})[0])
+            self.assertFalse(report.verify(sources, {"file": "dose.txt", "line": 1, "end": 2,
+                                                      "text": "5 mg - 10 mg"})[0])
             self.assertTrue(report.verify(sources, {"file": "dose.txt", "line": 1, "end": 2,
-                                                     "text": "5 mg - 10 mg"})[0])
+                                                     "text": "- 5 mg - 10 mg"})[0])
+            (sources / "words.txt").write_text("COVID-19 patients were enrolled.\n", encoding="utf-8")
+            self.assertTrue(report.verify(sources, {"file": "words.txt", "line": 1,
+                                                     "text": "19 patients were enrolled."})[0])
+            (sources / "reasons.md").write_text("# Why\n\n- 5 reasons to try\n- Easy setup\n",
+                                                encoding="utf-8")
+            self.assertTrue(report.verify(sources, {"file": "reasons.md", "line": 3, "end": 4,
+                                                     "text": "- 5 reasons to try Easy setup"})[0])
+            self.assertFalse(report.verify(sources, {"file": "reasons.md", "line": 3, "end": 4,
+                                                      "text": "5 reasons to try Easy setup"})[0])
 
     def test_save_refuses_to_replace_a_directory(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -390,6 +401,44 @@ class UntrustedInputTests(unittest.TestCase):
         self.assertIn("# author Ada A1", text)
         self.assertIn("# 別の候補 Ada Other A2", text)
         self.assertIn("chain.py author A2", text)
+
+
+class UpstreamPortTests(unittest.TestCase):
+    def test_source_names_reject_bidi_controls_written_as_escapes(self):
+        source = (SCRIPTS / "fetch.py").read_text(encoding="utf-8")
+        controls = [0x200E, 0x200F, *range(0x202A, 0x202F), *range(0x2066, 0x206A)]
+        for codepoint in controls:
+            with self.subTest(codepoint=f"U+{codepoint:04X}"):
+                self.assertFalse(fetch.valid_source_name(f"paper{chr(codepoint)}.md"))
+                self.assertNotIn(chr(codepoint), source)
+        for codepoint in (0x200D, 0x2010, 0x2029, 0x2065, 0x206A):
+            self.assertTrue(fetch.valid_source_name(f"paper{chr(codepoint)}.md"))
+
+    def test_pdf_text_falls_back_to_pdfminer_and_pdf2txt(self):
+        pdf, out = Path("/tmp/a.pdf"), Path("/tmp/a.txt")
+        with patch.object(fetch, "missing", return_value=[]):
+            command = fetch.pdf_text_command(pdf, out)
+        self.assertEqual(command[:1], ["pdftotext"])
+        with patch.object(fetch, "missing", side_effect=lambda *names: list(names)), \
+                patch.object(fetch, "has_pdfminer", return_value=True):
+            command = fetch.pdf_text_command(pdf, out)
+        self.assertEqual(command[:2], [sys.executable, "-c"])
+        with patch.object(fetch, "missing", side_effect=lambda *names: list(names)), \
+                patch.object(fetch, "has_pdfminer", return_value=False), \
+                patch.object(fetch, "run_tool") as run:
+            self.assertEqual(fetch.pdf_to_text(Path("a.pdf")), "")
+            run.assert_not_called()
+
+    def test_fetch_log_records_utc_time(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            sources = Path(tmp) / "sources"
+            sources.mkdir()
+            fetch.record_fetch(sources, "paper", "https://example.test/a",
+                               "OK\tpaper\tpaper.md\t10\tline\n")
+            entry = json.loads((Path(tmp) / "fetch-log.jsonl").read_text(encoding="utf-8"))
+        self.assertEqual(entry["status"], "OK")
+        self.assertEqual(entry["file"], "paper.md")
+        dt.datetime.fromisoformat(entry["at"])
 
 
 if __name__ == "__main__":

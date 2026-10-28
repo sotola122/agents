@@ -355,10 +355,10 @@ source_is_file = true
 [[assets]]
 id = "herdrdev/herdr"
 source = "herdr"
-rev = "2713feb56e9c9db33992db0a262c68f7426d46dd"
+rev = "bc8c28988f75c538d4ca058b702f5adbea30566e"
 export_hash = "b0dbfb580a00c269ad4c160c56af3015d9ae836de424874a0dd1a7abbbe3f462"
 target = "skills/herdr"
-cache = ".cache/sources/herdr/2713feb56e9c9db33992db0a262c68f7426d46dd/herdr"
+cache = ".cache/sources/herdr/bc8c28988f75c538d4ca058b702f5adbea30566e/herdr"
 source_is_file = false
 
 [[assets]]
@@ -427,8 +427,8 @@ source_is_file = false
 [[assets]]
 id = "coji/natural-japanese"
 source = "natural-japanese"
-rev = "c7dd502a6c93428ab5bd7cac7e993643a7391a21"
-export_hash = "01ab019ca96647c5354301686b57e33f2aca53702fd454f73fffc7768c955ae5"
+rev = "25a8638b780037a2012e2bb3f624a0b1710666fb"
+export_hash = "e20097ebd25c4dbb52684f941c43b7fcfdd03f856c1b52013503cb3c074e64fb"
 target = "skills/natural-japanese"
-cache = ".cache/sources/natural-japanese/c7dd502a6c93428ab5bd7cac7e993643a7391a21/natural-japanese"
+cache = ".cache/sources/natural-japanese/25a8638b780037a2012e2bb3f624a0b1710666fb/natural-japanese"
 source_is_file = false

@@ -15,8 +15,8 @@ description: >-
 Explore from unfamiliar vocabulary to original sources. **Preserve originals
 without summarizing them**, and **decide when to stop from evidence, not confidence**.
 
-Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/659f46cdd25a4f969193642b9f368859a16ae0af)
-at commit `659f46cdd25a4f969193642b9f368859a16ae0af`, under the bundled [MIT license](LICENSE).
+Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/808407e501bc5a1e596655b0a6d62e1f3b20ba1b)
+at commit `808407e501bc5a1e596655b0a6d62e1f3b20ba1b`, under the bundled [MIT license](LICENSE).
 
 ## Language
 
@@ -251,7 +251,11 @@ extracting) to make a reading page without replacing evidence with a summary.
 1. Write `<topic_dir>/extracts.json`, organized by required claim. Copy original
    passages exactly and include file, line, and optional end line. Use an optional
    `ja` for a clearly labeled Japanese translation and `mark` for source type or
-   automatic-caption warnings. Preserve the original quote in `text`.
+   automatic-caption warnings. Preserve the original quote in `text`. When the
+   copied span starts with a number, include a minus or dash (`-`, `−`, `－`, `–`)
+   that sits immediately before that number in the original. Copy a list item
+   that starts with a number together with its `- ` marker. Dropping that marker
+   is indistinguishable from dropping a minus, and verification rejects it.
 2. For two-column text, use `…` between omitted spans. `report.py` verifies the
    remaining pieces in order and shows the omissions in the page.
 3. Put conflicting excerpts in `disagreements` without deciding which is right.
@@ -394,8 +398,10 @@ are optional except when needed for the requested source format.
   reference. If [ax](https://github.com/yusukebe/ax) is installed, pass it the saved HTML for
   conversion only. For an HTML page, request once more with a non-browser
   User-Agent and keep a returned PDF when that PDF meets the length floor. Save
-  PDF plus `.txt` using Poppler/Xpdf `pdftotext -layout`; OCR image-only PDFs with
-  `pdftoppm` and `tesseract`, at most 60 pages, and keep the longer extraction.
+  PDF plus `.txt` using Poppler/Xpdf `pdftotext -layout` when it is installed,
+  otherwise pdfminer.six (`pdfminer.high_level` or `pdf2txt.py`). OCR image-only
+  PDFs with `pdftoppm` and `tesseract`, at most 60 pages, and keep the longer
+  extraction.
   Add installed `jpn` and `jpn_vert` data to English, or use `DEEPSEARCH_OCR_LANG`
   when it names languages joined by `+`. Do not keep an OCR transcript whose
   confidence is below 50 or that missed a page; say why in the `FAIL` line.
@@ -415,8 +421,11 @@ are optional except when needed for the requested source format.
   that exist in the source file; generate the reading page unless `--check` is
   supplied. Replace an existing page only after the new page is fully written.
   Link each excerpt to its source page from the quote, the map, or `fetch-log.jsonl`.
-  A Markdown excerpt may omit the list marker on each line. A leading hyphen in
-  extracted PDF text stays part of the text. Saved text uses LF newlines.
+  A Markdown excerpt may omit a list marker on each line, except a hyphen
+  immediately before a number. That hyphen may be a minus sign, including in
+  `.md`, because plain text is also saved as Markdown. Copy the sign with the
+  number. A hyphen inside a word, such as COVID-19, stays part of the word.
+  Saved text uses LF newlines.
   `fetch.py` refuses to replace a directory that has the same name as a source file.
 - `scripts/digest.py add <topic_dir> [--round N] [--by name]`: append search-hit
   JSON from stdin to `queries.jsonl`. `scripts/digest.py <topic_dir> [--check]`
