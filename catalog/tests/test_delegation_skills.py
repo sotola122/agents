@@ -201,7 +201,7 @@ class DelegationSkillTests(unittest.TestCase):
 
         source = next(item for item in catalog["sources"] if item["id"] == "ponytail")
         self.assertEqual(source["url"], "https://github.com/DietrichGebert/ponytail.git")
-        self.assertEqual(source["rev"], "09c434ab73ca43761c5d8b0c5d341926c2fba710")
+        self.assertEqual(source["rev"], "96608e078b2d5ea607c5c3b8b5a54d1c1fba6846")
         self.assertEqual(source["license"], "MIT")
 
         expected = (
@@ -281,6 +281,35 @@ class DelegationSkillTests(unittest.TestCase):
         self.assertEqual(asset["path"], "skills/natural-japanese")
         self.assertEqual(asset["target"], "skills/natural-japanese")
         self.assertIs(enabled["coji/natural-japanese"], True)
+
+    def test_yomiyasu_skill_is_pinned_and_enabled(self) -> None:
+        with (ROOT / "sources.toml").open("rb") as stream:
+            catalog = tomllib.load(stream)
+        with (ROOT / "assets.local.toml.example").open("rb") as stream:
+            enabled = tomllib.load(stream)["external"]
+        with (ROOT / "sources.lock.toml").open("rb") as stream:
+            locked = tomllib.load(stream)["assets"]
+
+        source = next(item for item in catalog["sources"] if item["id"] == "yomiyasu")
+        self.assertEqual(source["url"], "https://github.com/nanaism/yomiyasu.git")
+        self.assertEqual(
+            source["rev"], "29d67ccb05e370b5958d72920a9cd1aa829dee80"
+        )
+        self.assertEqual(source["license"], "MIT")
+
+        asset = next(
+            item for item in catalog["assets"] if item["id"] == "nanaism/yomiyasu"
+        )
+        self.assertEqual(asset["source"], "yomiyasu")
+        self.assertEqual(asset["kind"], "skill")
+        self.assertEqual(asset["path"], "skills/yomiyasu")
+        self.assertEqual(asset["target"], "skills/yomiyasu")
+        self.assertNotIn("excludes", asset)
+        self.assertIs(enabled["nanaism/yomiyasu"], True)
+        entry = next(item for item in locked if item["id"] == "nanaism/yomiyasu")
+        self.assertEqual(entry["rev"], source["rev"])
+        self.assertEqual(entry["source"], "yomiyasu")
+        self.assertFalse(entry["source_is_file"])
 
 
 if __name__ == "__main__":

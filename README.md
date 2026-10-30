@@ -36,24 +36,29 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 長くなった orchestrator セッションのトークン消費を抑えるため、タスクの区切りで要約して新しいセッションに切り替えます。
 有効にするには `assets.local.toml` の `[skills]` に `summary = true` を追加します。
 
-Herdrの操作skillは公式リポジトリをcommit `bc8c28988f75c538d4ca058b702f5adbea30566e`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `2713feb56e9c9db33992db0a262c68f7426d46dd` と同一です。進めた差分は、反応の無い issue を月次で閉じる CI だけです。待機時間の要件は変わりません。
+Herdrの操作skillは公式リポジトリをcommit `ee5bfb5041bb3e4a49d591c72308aae3c81ecdde`で固定して取り込みます。
+`skills/herdr` の tree は直前の pin `bc8c28988f75c538d4ca058b702f5adbea30566e` と同一です。進めた差分は、agent 向け案内を agent-guide と llms.txt からソースと docs へ向けたことです。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
 unslopのskillは公式リポジトリ全体をcommit `17ed39c9d0b522f44190ff0c6233867eadee192a`で固定して取り込みます。
 SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
 catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
 
-ponytailのskillは公式リポジトリをcommit `09c434ab73ca43761c5d8b0c5d341926c2fba710`で固定して取り込みます。
+ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
-直前の pin `84740e3d344b69b4a133201fa519eb37a62a2b2a` からの skill 差分は、`ponytail` の argument-hint に `off` を足したことと、`ponytail-help` に Claude Code の band 操作を足したことです。
+6本の skill tree は直前の pin `09c434ab73ca43761c5d8b0c5d341926c2fba710` と同一です。進めた差分は、取り込まない band hook の修正と README の PhotoReunion です。
 
 natural-japaneseのskillは公式リポジトリをcommit `25a8638b780037a2012e2bb3f624a0b1710666fb`で固定して取り込みます。
 スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 直前の pin `c7dd502a6c93428ab5bd7cac7e993643a7391a21` からの差分は、文の入った括弧を読みにくさとして示すことと、括弧を外すときに中身を前の文へ入れ、受け直すだけの文や関係を決める言葉を足さないことです。エッセイの余談の括弧は語り口として残します。
 
-mattpocock/skills は commit `59db609eb1e18aaf59b63284d0e52255aff0c63c` で固定します。
-直前の pin `5beb35b040e3de97e54fa9e386d7e42d15c295c2` から変わった登録済み skill は `setup-matt-pocock-skills` だけです。GitHub か GitLab を選んだときに到達できる remote を先に用意すること、issue を閉じる前にコメントを残すこと、自分のリポジトリ以外へ issue を作らないこと、legacy の `CONTEXT.md` を `GLOSSARY.md` へ移す提案が足されています。`writing-for-agents` の本文は変わっていません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
+yomiyasuのskillは公式リポジトリをcommit `29d67ccb05e370b5958d72920a9cd1aa829dee80`（v2.5.0）で固定して取り込みます。
+スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
+lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
+frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
+
+mattpocock/skills は commit `a496f5513d4a4cf889bc48e189e579f4b0bdf6aa` で固定します。
+直前の pin `59db609eb1e18aaf59b63284d0e52255aff0c63c` から変わった登録済み skill は、subagent を新しい context window で始める指示です。対象は `code-review`、`codebase-design`、`implement-spec`、`improve-codebase-architecture`、`research`、`wayfinder`、`grilling` です。`implement-spec` は ticket ごとに新しい implementer subagent を使い、コードレビューの修正も新しい implementer に渡します。`writing-for-agents` の本文は変わっていません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。`chief-of-staff` 自体にも同じ一文が増えていますが、未登録のままです。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
