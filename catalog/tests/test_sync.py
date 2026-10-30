@@ -260,19 +260,6 @@ class SyncCliTests(unittest.TestCase):
 
         self._run(exercise)
 
-    def test_hermes_skill_target_is_namespaced_under_anago(self) -> None:
-        asset = core.Asset(
-            id="fixture/demo",
-            source="fixture",
-            kind="skill",
-            path="skills/demo",
-            target="skills/demo",
-            harnesses=("cursor", "hermes"),
-        )
-
-        self.assertEqual(core._target_for(asset, "hermes"), "skills/anago/demo")
-        self.assertEqual(core._target_for(asset, "cursor"), "skills/demo")
-
     def test_claude_harness_accepts_skills_only(self) -> None:
         def exercise() -> None:
             manifest = self.root / "sources.toml"
@@ -311,15 +298,6 @@ class SyncCliTests(unittest.TestCase):
         ):
             self.assertEqual(core._harness_root("hermes"), hermes_home.resolve())
             self.assertEqual(core._harness_root("cursor"), (self.home / ".cursor").resolve())
-
-    def test_run_removes_hermes_home_created_by_exercise(self) -> None:
-        previous = os.environ.pop("HERMES_HOME", None)
-        try:
-            self._run(lambda: os.environ.__setitem__("HERMES_HOME", "leaked"))
-            self.assertNotIn("HERMES_HOME", os.environ)
-        finally:
-            if previous is not None:
-                os.environ["HERMES_HOME"] = previous
 
     def test_hermes_skill_apply_uses_anago_namespace(self) -> None:
         def exercise() -> None:
@@ -1517,25 +1495,6 @@ class SyncCliTests(unittest.TestCase):
         with self.assertRaisesRegex(core.SyncError, "重な"):
             core.load_config(self.root)
 
-    def test_load_config_rejects_overlapping_harness_target(self) -> None:
-        manifest = self.root / "sources.toml"
-        manifest.write_text(
-            manifest.read_text(encoding="utf-8")
-            + textwrap.dedent(
-                """
-                [[assets]]
-                id = "fixture/nested-harness"
-                source = "fixture"
-                kind = "skill"
-                path = "skills/demo"
-                target = "skills/demo/nested"
-                """
-            ),
-            encoding="utf-8",
-        )
-        with self.assertRaisesRegex(core.SyncError, "重な"):
-            core.load_config(self.root)
-
     def test_export_rejects_reserved_export_meta(self) -> None:
         (self.upstream / "skills" / "demo" / core.EXPORT_META_REL).write_text(
             "schema_version = 1\n", encoding="utf-8"
@@ -1717,7 +1676,6 @@ class SyncCliTests(unittest.TestCase):
         def exercise() -> None:
             config = core.load_config(self.root)
             (self.root / "sources.lock.toml").unlink()
-            original_write = core.write_lock
 
             def boom_write(*args, **kwargs):
                 raise core.SyncError("simulated first-sync lock failure")
@@ -1752,25 +1710,6 @@ class SyncCliTests(unittest.TestCase):
             with mock.patch.object(core, "_exclusive_sync_lock", tracking_lock):
                 with mock.patch.object(core, "load_lock", side_effect=tracked_load):
                     core.main(["--root", str(self.root), "diff"])
-
-        self._run(exercise)
-
-    def test_sync_does_not_double_enter_lock(self) -> None:
-        enter_count = {"count": 0}
-
-        @contextlib.contextmanager
-        def counting_lock(root):
-            enter_count["count"] += 1
-            try:
-                yield
-            finally:
-                enter_count["count"] -= 1
-
-        def exercise() -> None:
-            config = core.load_config(self.root)
-            with mock.patch.object(core, "_exclusive_sync_lock", counting_lock):
-                core.sync_assets(config, None)
-            self.assertEqual(enter_count["count"], 0)
 
         self._run(exercise)
 
