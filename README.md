@@ -48,10 +48,6 @@ ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 6本の skill tree は直前の pin `09c434ab73ca43761c5d8b0c5d341926c2fba710` と同一です。進めた差分は、取り込まない band hook の修正と README の PhotoReunion です。
 
-natural-japaneseのskillは公式リポジトリをcommit `25a8638b780037a2012e2bb3f624a0b1710666fb`で固定して取り込みます。
-スキル本体は `skills/natural-japanese/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
-直前の pin `c7dd502a6c93428ab5bd7cac7e993643a7391a21` からの差分は、文の入った括弧を読みにくさとして示すことと、括弧を外すときに中身を前の文へ入れ、受け直すだけの文や関係を決める言葉を足さないことです。エッセイの余談の括弧は語り口として残します。
-
 yomiyasuのskillは公式リポジトリをcommit `29d67ccb05e370b5958d72920a9cd1aa829dee80`（v2.5.0）で固定して取り込みます。
 スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。

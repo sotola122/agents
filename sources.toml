@@ -15,18 +15,6 @@ rev = "a496f5513d4a4cf889bc48e189e579f4b0bdf6aa"
 license = "MIT"
 
 [[sources]]
-id = "cognitive-rhythm-writing"
-url = "https://gist.github.com/eb2929f13ed19c97188393d297be8432.git"
-rev = "a3b1e26beced71d582e13314fb6f5b179b023c76"
-license = "Unlicense"
-
-[[sources]]
-id = "japanese-tech-writing"
-url = "https://gist.github.com/fd287c3133457c4fd8f5601d34aa817d.git"
-rev = "8f2d57610a73efc97d743c9b0b0ecb1002e09fa4"
-license = "Unlicense"
-
-[[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
 rev = "ee5bfb5041bb3e4a49d591c72308aae3c81ecdde"
@@ -294,20 +282,6 @@ kind = "skill"
 path = "skills/productivity/writing-for-agents"
 target = "skills/writing-for-agents"
 
-[[assets]]
-id = "k16shikano/cognitive-rhythm-writing"
-source = "cognitive-rhythm-writing"
-kind = "skill"
-path = "SKILL.md"
-target = "skills/cognitive-rhythm-writing"
-
-[[assets]]
-id = "k16shikano/japanese-tech-writing"
-source = "japanese-tech-writing"
-kind = "skill"
-path = "SKILL.md"
-target = "skills/japanese-tech-writing"
-
 [[sources]]
 id = "unslop"
 url = "https://github.com/theclaymethod/unslop.git"
@@ -376,19 +350,6 @@ source = "ponytail"
 kind = "skill"
 path = "skills/ponytail-help"
 target = "skills/ponytail-help"
-
-[[sources]]
-id = "natural-japanese"
-url = "https://github.com/coji/natural-japanese.git"
-rev = "25a8638b780037a2012e2bb3f624a0b1710666fb"
-license = "MIT"
-
-[[assets]]
-id = "coji/natural-japanese"
-source = "natural-japanese"
-kind = "skill"
-path = "skills/natural-japanese"
-target = "skills/natural-japanese"
 
 [[sources]]
 id = "yomiyasu"

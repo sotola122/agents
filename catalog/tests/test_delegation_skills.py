@@ -256,31 +256,35 @@ class DelegationSkillTests(unittest.TestCase):
             self.assertEqual(locked[asset_id]["rev"], source["rev"])
             self.assertEqual(locked[asset_id]["source"], "mattpocock-skills")
 
-    def test_natural_japanese_skill_is_pinned_and_enabled(self) -> None:
+    def test_removed_writing_sources_stay_unregistered(self) -> None:
         with (ROOT / "sources.toml").open("rb") as stream:
             catalog = tomllib.load(stream)
         with (ROOT / "assets.local.toml.example").open("rb") as stream:
             enabled = tomllib.load(stream)["external"]
+        with (ROOT / "sources.lock.toml").open("rb") as stream:
+            locked = {item["id"] for item in tomllib.load(stream)["assets"]}
 
-        source = next(
-            item for item in catalog["sources"] if item["id"] == "natural-japanese"
+        source_ids = {item["id"] for item in catalog["sources"]}
+        asset_ids = {item["id"] for item in catalog["assets"]}
+        removed = (
+            (
+                "cognitive-rhythm-writing",
+                "k16shikano/cognitive-rhythm-writing",
+                "cognitive-rhythm-writing",
+            ),
+            (
+                "japanese-tech-writing",
+                "k16shikano/japanese-tech-writing",
+                "japanese-tech-writing",
+            ),
+            ("natural-japanese", "coji/natural-japanese", "natural-japanese"),
         )
-        self.assertEqual(
-            source["url"], "https://github.com/coji/natural-japanese.git"
-        )
-        self.assertEqual(
-            source["rev"], "25a8638b780037a2012e2bb3f624a0b1710666fb"
-        )
-        self.assertEqual(source["license"], "MIT")
-
-        asset = next(
-            item for item in catalog["assets"] if item["id"] == "coji/natural-japanese"
-        )
-        self.assertEqual(asset["source"], "natural-japanese")
-        self.assertEqual(asset["kind"], "skill")
-        self.assertEqual(asset["path"], "skills/natural-japanese")
-        self.assertEqual(asset["target"], "skills/natural-japanese")
-        self.assertIs(enabled["coji/natural-japanese"], True)
+        for source_id, asset_id, directory in removed:
+            self.assertNotIn(source_id, source_ids)
+            self.assertNotIn(asset_id, asset_ids)
+            self.assertNotIn(asset_id, enabled)
+            self.assertNotIn(asset_id, locked)
+            self.assertFalse((ROOT / "skills" / directory).exists(), directory)
 
     def test_yomiyasu_skill_is_pinned_and_enabled(self) -> None:
         with (ROOT / "sources.toml").open("rb") as stream:

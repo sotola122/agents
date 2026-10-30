@@ -10,7 +10,7 @@ Push an already-committed branch and open a pull request. Title and prose are Ja
 
 **Japanese invariant** (check at skill start and again before create): classify every title and user-written prose block as `Japanese` or `exception(reason)`. Allowed exceptions: template-fixed headings, code, identifiers, URLs, verbatim quotes. Unclassified must be zero. Do not rely on character-class heuristics.
 
-Norms: read [`../japanese-tech-writing/SKILL.md`](../japanese-tech-writing/SKILL.md) and apply to prose. Raw logs, command output, and diffs are out of scope. Checklist explanatory text is in scope.
+Norms: user-facing prose is Japanese. Raw logs, command output, and diffs are out of scope. Checklist explanatory text is in scope.
 
 Prefer repository templates for structure. Use the skill default outline only when no usable template exists.
 
@@ -56,7 +56,7 @@ Completion: push exit 0; upstream set; local HEAD OID equals remote tip OID.
 
 ### 4. Write Japanese title and body
 
-Apply [`../japanese-tech-writing/SKILL.md`](../japanese-tech-writing/SKILL.md). Re-check the Japanese invariant.
+Write user-facing prose in Japanese. Re-check the Japanese invariant.
 
 Use `Closes #N` only when the PR fully resolves the issue; otherwise `Refs #N`.
 
