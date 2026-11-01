@@ -53,8 +53,8 @@ yomiyasuのskillは公式リポジトリをcommit `29d67ccb05e370b5958d72920a9cd
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
 frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
 
-mattpocock/skills は commit `a496f5513d4a4cf889bc48e189e579f4b0bdf6aa` で固定します。
-直前の pin `59db609eb1e18aaf59b63284d0e52255aff0c63c` から変わった登録済み skill は、subagent を新しい context window で始める指示です。対象は `code-review`、`codebase-design`、`implement-spec`、`improve-codebase-architecture`、`research`、`wayfinder`、`grilling` です。`implement-spec` は ticket ごとに新しい implementer subagent を使い、コードレビューの修正も新しい implementer に渡します。`writing-for-agents` の本文は変わっていません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。`chief-of-staff` 自体にも同じ一文が増えていますが、未登録のままです。
+mattpocock/skills は commit `4ae2317ddb22b046e26455e4f9c9b3aaaf62212d` で固定します。
+登録済み skill の tree は直前の pin `a496f5513d4a4cf889bc48e189e579f4b0bdf6aa` と同一です。進めた差分は、未登録の `chief-of-staff`（共有 wiki を先に探す）と、新規の in-progress `software-factory` だけです。どちらも登録しません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
