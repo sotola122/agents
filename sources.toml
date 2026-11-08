@@ -354,7 +354,7 @@ target = "skills/ponytail-help"
 [[sources]]
 id = "yomiyasu"
 url = "https://github.com/nanaism/yomiyasu.git"
-rev = "29d67ccb05e370b5958d72920a9cd1aa829dee80"
+rev = "8394e099486aaa2e28cf89992e46f5ebe5ed839d"
 license = "MIT"
 
 # skills/yomiyasu already contains LICENSE and UNICODE-LICENSE.txt (same bytes

@@ -48,7 +48,8 @@ ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 6本の skill tree は直前の pin `09c434ab73ca43761c5d8b0c5d341926c2fba710` と同一です。進めた差分は、取り込まない band hook の修正と README の PhotoReunion です。
 
-yomiyasuのskillは公式リポジトリをcommit `29d67ccb05e370b5958d72920a9cd1aa829dee80`（v2.5.0）で固定して取り込みます。
+yomiyasuのskillは公式リポジトリをcommit `8394e099486aaa2e28cf89992e46f5ebe5ed839d` で固定して取り込みます。
+登録する `skills/yomiyasu/` の tree は直前の pin `29d67ccb05e370b5958d72920a9cd1aa829dee80`（v2.5.0）と同一です。進めた差分はリポジトリ README の免責一文だけで、配布対象外です。新しいタグはありません。
 スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
 frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
