@@ -48,8 +48,8 @@ ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 6本の skill tree は直前の pin `09c434ab73ca43761c5d8b0c5d341926c2fba710` と同一です。進めた差分は、取り込まない band hook の修正と README の PhotoReunion です。
 
-yomiyasuのskillは公式リポジトリをcommit `7b212ff2f037953b8c233ae315e5c08e7fc36da6`（v3.0.0）で固定して取り込みます。
-直前の pin `8394e099486aaa2e28cf89992e46f5ebe5ed839d` から、配布する `skills/yomiyasu/` の SKILL.md、references、scripts が進んでいます。SKILL.md は短く書き直され、漢語を原文のままにする段落と lint の直訳語の型が足され、`flag.txt` に使う語を書けるようになっています。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
+yomiyasuのskillは公式リポジトリをcommit `2318a6d0820a58d3f8cfadc75af86978bb739185` で固定して取り込みます。
+v3.0.1 は `b9a69a3791dd7d3c063ed963bc4a408e515f6288` です。pin はその直後の CI 分割を含み、配布する `skills/yomiyasu/` は v3.0.1 と同じです。直前の pin `7b212ff2f037953b8c233ae315e5c08e7fc36da6`（v3.0.0）からの配布差分は SKILL.md の version と scripts の遅延コンパイルです。upstream は、lint、diff、check の出力がバージョン文字列以外同じだと記録しています。references は変わっていません。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
 スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
 frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
