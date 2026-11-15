@@ -13,12 +13,13 @@ agent、AGENTS.md、skillsを一か所で管理し、Cursor や OpenCode など�
 - `agents/`：このリポジトリで直接管理するエージェント向けプロンプト
 - `context/`：このリポジトリで直接管理する、各ツールで共有する指示
 
-Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/claude`、`skills/cursor`）を管理する。
+Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/claude`、`skills/cursor`、`skills/omp`）を管理する。
 各 harness skill は単一の `SKILL.md` で CLI の起動、権限、workspace、入出力、検証、native session の再開を扱い、task prompt、review lens は同梱しない。
-`big-bang`・`claude`・`cursor`・`codex`・`pi` を配布するときは、共通の履歴管理を担う `harness-sessions` も有効にします。
+`big-bang`・`claude`・`cursor`・`codex`・`pi`・`omp` を配布するときは、共通の履歴管理を担う `harness-sessions` も有効にします。
 履歴は対象 workspace 内の呼び出し元 harness directory に保存します（例: `.hermes/agent-sessions/cursor/`）。
 同じ directory の `.gitignore` で `/agent-sessions/` を除外し、native session ID、決定事項、検証結果、次の作業を残します。
 Big Bang の初回・継続待機は10分以上とし、タイムアウト後は状態を確認して待機継続・助言・中断を判断します。
+`omp` は Oh My Pi CLI の実行・再開を扱います。既存環境では `assets.local.toml` の `[skills]` に `omp = true` と `harness-sessions = true` を設定してから配布します。
 
 `design-docs` は設計判断と代替案の比較を含む日本語の設計文書を作成します。
 ページ数は設計内容に応じて決め、ユーザーがページ数を指定した場合のみその指定に従います。シーケンス図やクラス図などの図はMermaidで記述します。
@@ -179,6 +180,8 @@ pi = true
 codex = true
 claude = true
 cursor = true
+omp = true
+harness-sessions = true
 ```
 
 - `[external]` … `sources.toml` の `asset.id`。セクション省略時は外部をすべて適用。あるときは `true` だけ適用
@@ -290,6 +293,8 @@ pi = true
 codex = true
 claude = true
 cursor = true
+omp = true
+harness-sessions = true
 ```
 
 `agents/` や `context/` の local ファイルも同様に `[agents]` / `[context]` で有効化できます。

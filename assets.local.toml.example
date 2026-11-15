@@ -72,6 +72,7 @@ github-issue = true
 github-pr = true
 harness-sessions = true
 md-docs-dev = false
+omp = true
 openagent-model-routing = false
 pi = true
 
