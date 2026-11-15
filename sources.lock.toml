@@ -346,10 +346,10 @@ source_is_file = false
 [[assets]]
 id = "theclaymethod/unslop"
 source = "unslop"
-rev = "17ed39c9d0b522f44190ff0c6233867eadee192a"
-export_hash = "31b803c52dc8c92c2d9316d0a1122a27585d0a7c9d8a186d694bb2c868f19158"
+rev = "0f4a07f5ca8bb400b4d4450b00d67c6e4a30b85a"
+export_hash = "39aa49b1a5a3be74a89b0f1ad210976349bdcef26ababa9575286d42a89f33c5"
 target = "skills/unslop"
-cache = ".cache/sources/unslop/17ed39c9d0b522f44190ff0c6233867eadee192a/unslop"
+cache = ".cache/sources/unslop/0f4a07f5ca8bb400b4d4450b00d67c6e4a30b85a/unslop"
 source_is_file = false
 
 [[assets]]
