@@ -284,9 +284,9 @@ target = "skills/writing-for-agents"
 
 [[sources]]
 id = "unslop"
-url = "https://github.com/theclaymethod/unslop.git"
-rev = "0f4a07f5ca8bb400b4d4450b00d67c6e4a30b85a"
-license = "MIT"
+url = "https://github.com/heydamir/unslop.git"
+rev = "620163eedb3529d9cd23a3994ed8d287d06f760d"
+license = "CC-BY-4.0"
 
 [[assets]]
 id = "herdrdev/herdr"
@@ -296,12 +296,11 @@ path = "skills/herdr"
 target = "skills/herdr"
 
 [[assets]]
-id = "theclaymethod/unslop"
+id = "heydamir/unslop"
 source = "unslop"
 kind = "skill"
-path = "."
+path = "skills/unslop"
 target = "skills/unslop"
-excludes = ["plans", "docs", ".github"]
 
 [[sources]]
 id = "ponytail"

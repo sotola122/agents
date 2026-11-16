@@ -344,12 +344,12 @@ cache = ".cache/sources/herdr/ee5bfb5041bb3e4a49d591c72308aae3c81ecdde/herdr"
 source_is_file = false
 
 [[assets]]
-id = "theclaymethod/unslop"
+id = "heydamir/unslop"
 source = "unslop"
-rev = "0f4a07f5ca8bb400b4d4450b00d67c6e4a30b85a"
-export_hash = "39aa49b1a5a3be74a89b0f1ad210976349bdcef26ababa9575286d42a89f33c5"
+rev = "620163eedb3529d9cd23a3994ed8d287d06f760d"
+export_hash = "34a908e1645c584fb07961ceeb2f37d54fc3115099922010c475dca5d9611528"
 target = "skills/unslop"
-cache = ".cache/sources/unslop/0f4a07f5ca8bb400b4d4450b00d67c6e4a30b85a/unslop"
+cache = ".cache/sources/unslop/620163eedb3529d9cd23a3994ed8d287d06f760d/unslop"
 source_is_file = false
 
 [[assets]]

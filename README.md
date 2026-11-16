@@ -41,10 +41,9 @@ Herdrの操作skillは公式リポジトリをcommit `ee5bfb5041bb3e4a49d591c723
 `skills/herdr` の tree は直前の pin `bc8c28988f75c538d4ca058b702f5adbea30566e` と同一です。進めた差分は、agent 向け案内を agent-guide と llms.txt からソースと docs へ向けたことです。待機時間の要件は変わりません。
 このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
 
-unslopのskillは公式リポジトリ全体をcommit `0f4a07f5ca8bb400b4d4450b00d67c6e4a30b85a`で固定して取り込みます。
-直前の pin `17ed39c9d0b522f44190ff0c6233867eadee192a` から、SKILL.md は command への routing に縮み、rewrite と core contract は frontier の書き換えを短くし、scanner は中身のない見出しと winner/loser 文を soft finding にして一致範囲を exact に報告します。path は repo ルートのままです。
-SKILL.mdがreferences/・presets/・scripts/等の相対参照を持つため、repoルート(`path = "."`)ごとexportしています。
-catalogのroot export対応(`catalog/core.py`の`_export_asset`)により実現しています。
+unslopのskillは https://github.com/heydamir/unslop をcommit `620163eedb3529d9cd23a3994ed8d287d06f760d`で固定して取り込みます。
+vibecodedなUIを、製品に合う画面へ直すskillです。ライセンスは CC-BY-4.0 です。
+path は `skills/unslop`、配布先は `skills/unslop` です。SKILL.md の相対参照（agents/・references/・scripts/）をそのまま配布します。
 
 ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
