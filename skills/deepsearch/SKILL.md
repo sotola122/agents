@@ -15,8 +15,8 @@ description: >-
 Explore from unfamiliar vocabulary to original sources. **Preserve originals
 without summarizing them**, and **decide when to stop from evidence, not confidence**.
 
-Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/808407e501bc5a1e596655b0a6d62e1f3b20ba1b)
-at commit `808407e501bc5a1e596655b0a6d62e1f3b20ba1b`, under the bundled [MIT license](LICENSE).
+Adapted from [MaryCache/imozuru](https://github.com/MaryCache/imozuru/tree/30c3b59a076ce228f05aa3036809297422f23dee)
+at commit `30c3b59a076ce228f05aa3036809297422f23dee`, under the bundled [MIT license](LICENSE).
 
 ## Language
 
@@ -166,7 +166,13 @@ Include those accounts rather than restricting the search to institutional venue
   login, or 404:
   - A 403, or an HTML page whose body is only a few dozen characters because the
     text is drawn by JavaScript: open it in a real browser such as Playwright and
-    save the returned PDF or rendered text.
+    save the returned PDF or rendered text. Launch Playwright with the sandbox
+    explicit: Python `p.chromium.launch(chromium_sandbox=True)`, JavaScript
+    `chromium.launch({ chromiumSandbox: true })`. Playwright's default adds
+    `--no-sandbox`. Adding `channel="chrome"` is optional when local Chrome is
+    available. If a sandboxed launch fails, report the failure and switch to the
+    user's browser. Do not add `--no-sandbox`, including when a CLI or MCP starts
+    Playwright.
   - A “too short” `FAIL` may be a genuinely short document. Check the page count
     or rendered text first. If it is short, save it and mark the source row as a
     short document.

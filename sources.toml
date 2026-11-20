@@ -11,13 +11,13 @@ hermes = ["codex"]
 [[sources]]
 id = "mattpocock-skills"
 url = "https://github.com/mattpocock/skills.git"
-rev = "5863806dd4e15c63174bee4e7515a4256792ecfa"
+rev = "abeeaf95660ba9e8b7c753eb38f441ca707a8823"
 license = "MIT"
 
 [[sources]]
 id = "herdr"
 url = "https://github.com/herdrdev/herdr.git"
-rev = "ee5bfb5041bb3e4a49d591c72308aae3c81ecdde"
+rev = "e8d7d9705a7a2c89cef4dd42079379f05685af87"
 license = "Apache-2.0"
 
 [[assets]]
@@ -353,7 +353,7 @@ target = "skills/ponytail-help"
 [[sources]]
 id = "yomiyasu"
 url = "https://github.com/nanaism/yomiyasu.git"
-rev = "db78b9bc5e868549b517a037df7a4d1c93edac23"
+rev = "c49d5f1bee91258e33e1febc3569c6c87be7669e"
 license = "MIT"
 
 # skills/yomiyasu already contains LICENSE and UNICODE-LICENSE.txt (same bytes
