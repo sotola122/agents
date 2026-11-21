@@ -150,7 +150,9 @@ class SyncCliTests(unittest.TestCase):
             with self.subTest(original=original):
                 path.write_text(original, encoding="utf-8")
                 rewritten, added = core._complete_local_settings(core.load_config(self.root))
-                self.assertEqual(len(added), 2)
+                self.assertEqual(sorted(added), [
+                    "apply.harnesses", "external.fixture/rule", "external.fixture/standalone",
+                ])
                 self.assertIn("# keep", rewritten)
                 path.write_text(rewritten, encoding="utf-8")
                 self.assertEqual(core._read_assets_local(self.root)["external"], {
@@ -277,7 +279,7 @@ class SyncCliTests(unittest.TestCase):
             self.assertIn("claude", demo.harnesses)
             self.assertNotIn("claude", rule.harnesses)
 
-            with self.assertRaisesRegex(core.SyncError, "context×claude"):
+            with self.assertRaisesRegex(core.SyncError, "配布できる組み合わせがありません"):
                 core.plan_changes(config, lock, ("context",), ("claude",))
 
             lines, operations, pi, applied = core.plan_changes(
@@ -355,12 +357,20 @@ class SyncCliTests(unittest.TestCase):
         with self.assertRaises(core.SyncError):
             core.load_config(self.root)
 
-    def test_diff_rejects_unsupported_kind_harness_pair(self) -> None:
-        config = core.load_config(self.root)
-
+    def test_plan_skips_unsupported_pairs_and_rejects_empty_selection(self) -> None:
         def exercise() -> None:
-            with self.assertRaisesRegex(core.SyncError, "agent×pi"):
-                core.plan_changes(config, {}, ("agent",), ("pi",))
+            config = core.load_config(self.root)
+            core.sync_assets(config, None)
+            lock = core.load_lock(config, required=True)
+            with self.assertRaisesRegex(core.SyncError, "配布できる組み合わせがありません"):
+                core.plan_changes(config, lock, ("agent",), ("pi",))
+            # agent×pi and context×shared are skipped instead of failing the run.
+            lines, operations, _pi, _applied = core.plan_changes(
+                config, lock, ("skill", "agent", "context"), ("pi", "shared")
+            )
+            self.assertTrue(any("fixture/demo → shared" in line for line in lines))
+            self.assertFalse(any("fixture/rule → shared" in line for line in lines))
+            self.assertTrue(operations)
 
         self._run(exercise)
 
@@ -607,12 +617,12 @@ class SyncCliTests(unittest.TestCase):
             ),
             encoding="utf-8",
         )
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            config = core.load_config(self.root)
+        config = core.load_config(self.root)
         self.assertEqual(config.external_apply_enabled, frozenset())
-        self.assertIn("ignored setting:", output.getvalue())
-        self.assertIn("fixture/nope", output.getvalue())
+        self.assertEqual(
+            config.ignored_settings,
+            ("assets.local.toml [external.fixture/nope] (asset not in sources.toml)",),
+        )
 
     def test_removed_local_skill_key_does_not_fail_diff_apply_validate(self) -> None:
         def exercise() -> None:
@@ -639,24 +649,23 @@ class SyncCliTests(unittest.TestCase):
                     code = core.main(["--root", str(self.root), *args])
                 return code, stdout.getvalue(), stderr.getvalue()
 
-            code, stdout, stderr = run("validate")
+            code, stdout, stderr = run("ls")
             self.assertEqual(code, 0, stderr)
             self.assertEqual(stderr, "")
-            self.assertIn("validation passed", stdout)
             self.assertIn(
-                "ignored setting: assets.local.toml [skills.document-writing] "
+                "! ignored setting: assets.local.toml [skills.document-writing] "
                 "(path not found: skills/document-writing)",
                 stdout,
             )
 
-            code, stdout, stderr = run("diff", "--kind", "skill", "--harness", "cursor")
+            code, stdout, stderr = run("diff", "-k", "skill", "-H", "cursor")
             self.assertEqual(stderr, "")
             self.assertNotEqual(code, 2)
             self.assertIn("local/native", stdout)
             self.assertNotIn("local/document-writing", stdout)
-            self.assertIn("skills.document-writing", stdout)
+            self.assertNotIn("ignored setting", stdout)
 
-            code, stdout, stderr = run("apply", "--kind", "skill", "--harness", "cursor")
+            code, stdout, stderr = run("-k", "skill", "-H", "cursor")
             self.assertEqual(code, 0, stderr)
             self.assertEqual(stderr, "")
             self.assertNotIn("local/document-writing", stdout)
@@ -667,9 +676,109 @@ class SyncCliTests(unittest.TestCase):
             config = core.load_config(self.root)
             self.assertTrue(any(asset.id == "local/native" for asset in config.assets))
             self.assertFalse(any(asset.id == "local/document-writing" for asset in config.assets))
-            self.assertEqual(settings_path.read_text(encoding="utf-8"), local_settings)
+            self.assertEqual(
+                core._read_assets_local(self.root)["skills"],
+                {"document-writing": True, "native": True},
+            )
 
         self._run(exercise)
+
+    def _main(self, *args: str) -> tuple[int, str, str]:
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+            code = self._run(lambda: core.main(["--root", str(self.root), *args]))
+        return code, stdout.getvalue(), stderr.getvalue()
+
+    def test_default_command_syncs_when_needed_and_seeds_applied_harnesses(self) -> None:
+        def exercise() -> None:
+            # ~/.cursor exists but was never applied; ~/.omp already holds catalog output.
+            (self.home / ".cursor").mkdir()
+            (self.home / ".omp").mkdir()
+            (self.home / ".omp" / core.APPLIED_MANIFEST_REL).write_text(
+                "schema_version = 1\n", encoding="utf-8"
+            )
+            code, stdout, stderr = self._main()
+            self.assertEqual(code, 0, stderr)
+            self.assertIn("synced fixture/demo", stdout)
+            self.assertEqual(
+                core._read_assets_local(self.root)["apply"], {"harnesses": ["omp"]}
+            )
+            self.assertTrue((self.home / ".omp" / "skills" / "demo" / "SKILL.md").is_file())
+            self.assertFalse((self.home / ".cursor" / "skills").exists())
+
+            with mock.patch.object(core, "_sync_assets_locked") as sync:
+                code, stdout, stderr = self._main()
+            self.assertEqual(code, 0, stderr)
+            sync.assert_not_called()
+            self.assertEqual(stdout, "no changes\n")
+
+        self._run(exercise)
+
+    def test_local_apply_harnesses_override_and_legacy_file_rejected(self) -> None:
+        (self.root / core.LOCAL_ASSETS_REL).write_text(
+            '[apply]\nharnesses = ["omp", "claude"]\n', encoding="utf-8"
+        )
+        manifest = self.root / "sources.toml"
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8").replace(
+                '"shared", "hermes"]', '"shared", "hermes", "claude"]'
+            ),
+            encoding="utf-8",
+        )
+        self.assertEqual(core.load_config(self.root).default_harnesses, ("omp", "claude"))
+        (self.root / "apply.local.toml").write_text(
+            'default_harnesses = ["cursor"]\n', encoding="utf-8"
+        )
+        with self.assertRaisesRegex(core.SyncError, r"\[apply\] harnesses"):
+            core.load_config(self.root)
+
+    def test_on_off_resolve_short_names_and_keep_other_settings(self) -> None:
+        skill = self.root / "skills" / "native"
+        skill.mkdir(parents=True)
+        (skill / "SKILL.md").write_text("# Native\n", encoding="utf-8")
+        settings = self.root / core.LOCAL_ASSETS_REL
+        settings.write_text(
+            '[apply]\nharnesses = ["cursor"]\n\n[skills]\nnative = false # mine\n',
+            encoding="utf-8",
+        )
+
+        code, stdout, stderr = self._main("off", "demo")
+        self.assertEqual(code, 0, stderr)
+        self.assertIn("off: fixture/demo", stdout)
+        code, _, stderr = self._main("on", "native")
+        self.assertEqual(code, 0, stderr)
+
+        data = core._read_assets_local(self.root)
+        # [external] was absent (= all on); disabling one must keep the rest on.
+        self.assertEqual(data["external"], {
+            "fixture/demo": False, "fixture/standalone": True, "fixture/rule": True,
+        })
+        self.assertEqual(data["skills"], {"native": True})
+        self.assertIn("native = true # mine", settings.read_text(encoding="utf-8"))
+
+        code, _, stderr = self._main("on", "missing")
+        self.assertEqual(code, 2)
+        self.assertIn("未知の asset です: missing", stderr)
+
+    def test_on_rejects_ambiguous_short_name(self) -> None:
+        demo = self.root / "skills" / "demo"
+        demo.mkdir(parents=True)
+        (demo / "SKILL.md").write_text("# Local demo\n", encoding="utf-8")
+        manifest = self.root / "sources.toml"
+        manifest.write_text(
+            manifest.read_text(encoding="utf-8").replace(
+                'target = "skills/demo"', 'target = "skills/fixture-demo"'
+            ),
+            encoding="utf-8",
+        )
+        code, _, stderr = self._main("on", "demo")
+        self.assertEqual(code, 2)
+        self.assertIn("fixture/demo", stderr)
+        self.assertIn("local/demo", stderr)
+        code, stdout, stderr = self._main("on", "local/demo")
+        self.assertEqual(code, 0, stderr)
+        self.assertIn("on: local/demo", stdout)
 
     def test_sync_cleans_stale_cache_entries(self) -> None:
         def exercise() -> None:
@@ -1972,7 +2081,7 @@ class SyncCliTests(unittest.TestCase):
             other_new = git(second, "rev-parse", "HEAD")
 
             code = core.main(
-                ["--root", str(self.root), "update", "--source", "fixture"]
+                ["--root", str(self.root), "up", "-s", "fixture"]
             )
             self.assertEqual(code, 0)
             updated = core.load_config(self.root)

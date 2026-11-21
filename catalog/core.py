@@ -96,6 +96,8 @@ class Config:
     # frozenset => only these external asset ids (true in [external]) are included.
     # Local assets are already filtered at load (only enabled ones appear in assets).
     external_apply_enabled: frozenset[str] | None = None
+    # assets.local.toml keys kept but not applied (unknown id / missing path).
+    ignored_settings: tuple[str, ...] = ()
 
 
 @dataclasses.dataclass(frozen=True)
@@ -169,7 +171,7 @@ def _read_assets_local(root: Path) -> dict:
     data = _read_toml(root / LOCAL_ASSETS_REL, optional=True)
     if not data:
         return {}
-    allowed = set(LOCAL_ASSET_SECTIONS) | {"external"}
+    allowed = set(LOCAL_ASSET_SECTIONS) | {"external", "apply"}
     unknown = set(data) - allowed
     if unknown:
         raise SyncError(
@@ -245,6 +247,7 @@ def _load_local_assets(
     *,
     asset_ids: set[str],
     targets: set[str],
+    ignored: list[str],
 ) -> list[Asset]:
     """Load enabled local assets from assets.local.toml (machine-local, gitignored)."""
     assets: list[Asset] = []
@@ -275,9 +278,8 @@ def _load_local_assets(
             # Removed skills stay in gitignored assets.local.toml. Keep the key and
             # skip it, matching unknown [external] ids.
             if not location.exists():
-                print(
-                    f"ignored setting: {LOCAL_ASSETS_REL} [{section}.{name}] "
-                    f"(path not found: {relative})"
+                ignored.append(
+                    f"{LOCAL_ASSETS_REL} [{section}.{name}] (path not found: {relative})"
                 )
                 continue
             if asset_id in asset_ids:
@@ -302,7 +304,7 @@ def _load_local_assets(
 
 
 def _external_apply_enabled(
-    data: Mapping[str, object], external_ids: Iterable[str]
+    data: Mapping[str, object], external_ids: Iterable[str], ignored: list[str]
 ) -> frozenset[str] | None:
     """Parse [external] enable table. None means section absent (all external apply)."""
     table = data.get("external")
@@ -311,7 +313,7 @@ def _external_apply_enabled(
     enables = _parse_enable_table(table, section="external")
     known = set(external_ids)
     for asset_id in sorted(set(enables) - known):
-        print(f"ignored setting: {LOCAL_ASSETS_REL} [external.{asset_id}] (asset not in sources.toml)")
+        ignored.append(f"{LOCAL_ASSETS_REL} [external.{asset_id}] (asset not in sources.toml)")
     return frozenset(asset_id for asset_id, enabled in enables.items() if enabled and asset_id in known)
 
 
@@ -363,12 +365,18 @@ def load_config(root: Path) -> Config:
         allowed_harnesses=allowed_harnesses,
     )
 
-    local = _read_toml(root / "apply.local.toml", optional=True)
-    if local:
-        if set(local) != {"default_harnesses"}:
-            raise SyncError("apply.local.toml では default_harnesses だけを指定できます")
+    if (root / "apply.local.toml").exists():
+        raise SyncError(
+            "apply.local.toml は廃止しました。default_harnesses の値を "
+            f"{LOCAL_ASSETS_REL} の [apply] harnesses へ移し、apply.local.toml を削除してください"
+        )
+    local_data = _read_assets_local(root)
+    local_apply = local_data.get("apply")
+    if local_apply is not None:
+        if not isinstance(local_apply, dict) or set(local_apply) != {"harnesses"}:
+            raise SyncError(f"{LOCAL_ASSETS_REL} の [apply] には harnesses だけを指定してください")
         default_harnesses = _string_list(
-            local["default_harnesses"], "apply.local.default_harnesses", allowed_harnesses
+            local_apply["harnesses"], f"{LOCAL_ASSETS_REL} [apply].harnesses", allowed_harnesses
         )
 
     sources: dict[str, Source] = {}
@@ -453,9 +461,9 @@ def load_config(root: Path) -> Config:
         asset_ids.add(asset_id)
         targets.add(target)
 
-    local_data = _read_assets_local(root)
+    ignored: list[str] = []
     external_ids = tuple(asset.id for asset in assets)
-    external_apply_enabled = _external_apply_enabled(local_data, external_ids)
+    external_apply_enabled = _external_apply_enabled(local_data, external_ids, ignored)
     assets.extend(
         _load_local_assets(
             root,
@@ -464,6 +472,7 @@ def load_config(root: Path) -> Config:
             local_skill_excludes,
             asset_ids=asset_ids,
             targets=targets,
+            ignored=ignored,
         )
     )
 
@@ -519,6 +528,7 @@ def load_config(root: Path) -> Config:
         default_harnesses,
         allowed_harnesses,
         external_apply_enabled,
+        tuple(ignored),
     )
 
 
@@ -526,7 +536,7 @@ def load_lock(config: Config, *, required: bool = False) -> dict[str, LockAsset]
     path = config.root / "sources.lock.toml"
     if not path.exists():
         if required:
-            raise SyncError("sources.lock.toml がありません。先に sync を実行してください")
+            raise SyncError("sources.lock.toml がありません。agents を実行してください")
         return {}
     data = _read_toml(path)
     if data.get("schema_version") != 1:
@@ -849,9 +859,13 @@ def _toml_quote(value: str) -> str:
     return f'"{escaped}"'
 
 
+def _toml_key(key: str) -> str:
+    return key if re.fullmatch(r"[A-Za-z0-9_-]+", key) else _toml_quote(key)
+
+
 def write_lock(config: Config, entries: Mapping[str, LockAsset]) -> None:
     lines = [
-        "# Generated by python -m catalog sync. Do not edit by hand.",
+        "# Generated by agents. Do not edit by hand.",
         "schema_version = 1",
         "",
     ]
@@ -1313,25 +1327,55 @@ def sync_assets(config: Config, requested: frozenset[str] | None) -> int:
         return _sync_assets_locked(config, requested)
 
 
-def _complete_local_settings(config: Config) -> tuple[str, list[str]]:
+def _toml_value(value: object) -> str:
+    if isinstance(value, bool):
+        return str(value).lower()
+    if isinstance(value, (list, tuple)):
+        return "[" + ", ".join(_toml_quote(str(item)) for item in value) + "]"
+    raise SyncError(f"internal: unsupported setting value: {value!r}")
+
+
+def _detected_harnesses(config: Config) -> tuple[str, ...]:
+    """Seed for [apply] harnesses: harnesses already managed, else installed tools."""
+    applied = tuple(
+        harness
+        for harness in config.allowed_harnesses
+        if (_harness_root(harness) / APPLIED_MANIFEST_REL).is_file()
+    )
+    if applied:
+        return applied
+    installed = tuple(
+        harness for harness in config.allowed_harnesses if _harness_root(harness).is_dir()
+    )
+    return installed or config.default_harnesses
+
+
+def _complete_local_settings(
+    config: Config, extra: Mapping[str, Mapping[str, object]] | None = None
+) -> tuple[str, list[str]]:
+    """Append missing assets.local.toml keys, keeping existing values and comments.
+
+    ``extra`` adds keys (with their initial value) beyond the defaults.
+    """
     path = config.root / LOCAL_ASSETS_REL
     original = path.read_text(encoding="utf-8") if path.exists() else ""
     data = tomllib.loads(original)
-    candidates = {
+    candidates: dict[str, dict[str, object]] = {
+        "apply": {"harnesses": list(_detected_harnesses(config))},
         "external": {asset.id: config.external_apply_enabled is None
                      for asset in config.assets if not asset.is_local},
-        "skills": {path.name: False for path in sorted((config.root / "skills").glob("*"))
-                   if path.is_dir() and (path / "SKILL.md").is_file()
-                   and not any(_paths_overlap(f"skills/{path.name}", asset.target)
-                               for asset in config.assets if not asset.is_local)},
+        "skills": {key: False for section, key, _id, _kind in _local_candidates(config)
+                   if section == "skills"},
     }
+    for section, values in (extra or {}).items():
+        candidates.setdefault(section, {}).update(values)
     added: list[str] = []
     lines = original.splitlines(keepends=True)
     for section, values in candidates.items():
         missing = {key: value for key, value in values.items() if key not in data.get(section, {})}
         if not missing:
             continue
-        addition = "".join(f"{_toml_quote(key)} = {str(value).lower()}\n" for key, value in missing.items())
+        addition = "".join(f"{_toml_key(key)} = {_toml_value(value)}\n" for key, value in missing.items())
         for index, line in enumerate(lines):
             if line.lstrip().startswith("["):
                 try:
@@ -1353,12 +1397,12 @@ def _complete_local_settings(config: Config) -> tuple[str, list[str]]:
                                 break
                             except tomllib.TOMLDecodeError:
                                 closing = line.find("}", closing + 1)
-                        inline = ", ".join(f"{_toml_quote(key)} = {str(value).lower()}"
+                        inline = ", ".join(f"{_toml_key(key)} = {_toml_value(value)}"
                                            for key, value in missing.items())
                         lines[index] = line[:closing].rstrip() + ", " + inline + line[closing:]
                         break
                 else:
-                    addition = "".join(f"{section}.{_toml_quote(key)} = {str(value).lower()}\n"
+                    addition = "".join(f"{section}.{_toml_key(key)} = {_toml_value(value)}\n"
                                        for key, value in missing.items())
                     lines.insert(0, addition)
             else:
@@ -1368,7 +1412,7 @@ def _complete_local_settings(config: Config) -> tuple[str, list[str]]:
     try:
         tomllib.loads(rewritten)
     except tomllib.TOMLDecodeError as exc:
-        raise SyncError(f"{LOCAL_ASSETS_REL} の設定追記には [external] / [skills] テーブル形式を使用してください") from exc
+        raise SyncError(f"{LOCAL_ASSETS_REL} の設定追記には [section] テーブル形式を使用してください") from exc
     return rewritten, added
 
 
@@ -1514,9 +1558,11 @@ def _sync_assets_locked(config: Config, requested: frozenset[str] | None) -> int
                 _remove_tree(staging_cache)
 
 
-def _parse_selection(raw: str | None, default: tuple[str, ...], allowed: Iterable[str], label: str) -> tuple[str, ...]:
+def _parse_selection(raw: str | None, default: tuple[str, ...], allowed: Sequence[str], label: str) -> tuple[str, ...]:
     if raw is None:
         return default
+    if raw.strip() == "all":
+        return tuple(allowed)
     values = tuple(dict.fromkeys(part.strip() for part in raw.split(",") if part.strip()))
     if not values:
         raise SyncError(f"--{label} に値がありません")
@@ -1594,7 +1640,7 @@ def _target_for(asset: Asset, harness: str) -> str:
 def _cache_files(config: Config, entry: LockAsset) -> FileTree:
     cache = _assert_safe_destination(config.root, entry.cache)
     if not cache.is_dir():
-        raise SyncError(f"cache がありません。sync を実行してください: {entry.id}")
+        raise SyncError(f"cache がありません。agents を実行してください: {entry.id}")
     if _tree_hash(cache) != entry.export_hash:
         raise SyncError(f"cache hash が lock と一致しません: {entry.id}")
     modes = _modes_for_cache(cache)
@@ -1884,14 +1930,12 @@ def plan_changes(
     tuple[Path, bytes, bytes] | None,
     dict[str, tuple[AppliedOutput, ...]],
 ]:
-    unsupported = [
-        f"{kind}×{harness}"
-        for kind in kinds
-        for harness in harnesses
-        if harness not in SUPPORTED[kind]
-    ]
-    if unsupported:
-        raise SyncError(f"未対応の kind×harness です: {', '.join(unsupported)}")
+    # Unsupported kind×harness pairs (e.g. agent×pi) are skipped; only a
+    # selection with no supported pair at all is an error.
+    if not any(harness in SUPPORTED[kind] for kind in kinds for harness in harnesses):
+        raise SyncError(
+            f"配布できる組み合わせがありません: kind={','.join(kinds)} harness={','.join(harnesses)}"
+        )
     operations: list[tuple[str, Path, str, FileTree]] = []
     lines: list[str] = []
     pi_updates: list[tuple[Asset, bytes]] = []
@@ -2033,7 +2077,7 @@ def _write_applied_manifest(
 ) -> None:
     harness_root.mkdir(parents=True, exist_ok=True)
     lines = [
-        "# Generated by python -m catalog apply. Do not edit by hand.",
+        "# Generated by agents. Do not edit by hand.",
         "schema_version = 1",
         "",
     ]
@@ -2180,14 +2224,17 @@ def update_sources(config: Config, requested: frozenset[str] | None) -> int:
         return _update_sources_locked(config, requested)
 
 
-def _update_sources_locked(config: Config, requested: frozenset[str] | None) -> int:
+def _select_sources(config: Config, requested: frozenset[str] | None) -> list[Source]:
     if requested is None:
-        selected = list(config.sources.values())
-    else:
-        unknown = sorted(requested - set(config.sources))
-        if unknown:
-            raise SyncError(f"未知の source です: {', '.join(unknown)}")
-        selected = [config.sources[source_id] for source_id in sorted(requested)]
+        return list(config.sources.values())
+    unknown = sorted(requested - set(config.sources))
+    if unknown:
+        raise SyncError(f"未知の source です: {', '.join(unknown)}")
+    return [config.sources[source_id] for source_id in sorted(requested)]
+
+
+def _update_sources_locked(config: Config, requested: frozenset[str] | None) -> int:
+    selected = _select_sources(config, requested)
 
     updates: dict[str, str] = {}
     for source in selected:
@@ -2220,9 +2267,9 @@ def _update_sources_locked(config: Config, requested: frozenset[str] | None) -> 
     return 0
 
 
-def check_updates(config: Config) -> int:
+def check_updates(config: Config, requested: frozenset[str] | None = None) -> int:
     changed = False
-    for source in config.sources.values():
+    for source in _select_sources(config, requested):
         tip = _remote_head(source)
         state = "up-to-date" if tip == source.rev else "update-available"
         changed |= tip != source.rev
@@ -2230,26 +2277,166 @@ def check_updates(config: Config) -> int:
     return 1 if changed else 0
 
 
-def status(config: Config, lock: Mapping[str, LockAsset]) -> int:
-    print(f"default kinds: {','.join(config.default_kinds)}")
-    print(f"default harnesses: {','.join(config.default_harnesses)}")
-    for asset in config.assets:
-        apply_flag = "apply" if apply_enabled(config, asset) else "apply-off"
-        if asset.is_local:
-            location = config.root.joinpath(*PurePosixPath(asset.target).parts)
-            state = "local" if location.exists() else "local-missing"
-            print(f"{asset.id}: {state} {apply_flag} kind={asset.kind}")
-            continue
-        source = config.sources[asset.source]
-        entry = lock.get(asset.id)
-        if entry is None:
-            state = "not-synced"
-        else:
+def _sync_needed(config: Config, lock: Mapping[str, LockAsset]) -> bool:
+    """Whether lock/cache drifted from sources.toml (pin, asset set, or cache content)."""
+    externals = [asset for asset in config.assets if not asset.is_local]
+    if set(lock) != {asset.id for asset in externals}:
+        return True
+    for asset in externals:
+        entry = lock[asset.id]
+        if not _lock_entry_matches_manifest(config, entry):
+            return True
+        try:
             cache = _assert_safe_destination(config.root, entry.cache)
-            state = "cached" if cache.is_dir() and _tree_hash(cache) == entry.export_hash else "cache-invalid"
-        print(f"{asset.id}: {state} {apply_flag} kind={asset.kind} pin={source.rev[:12]}")
-    if not config.assets:
-        print("assets: none")
+            if not cache.is_dir() or _tree_hash(cache) != entry.export_hash:
+                return True
+        except SyncError:
+            return True
+    return False
+
+
+def _prepare_locked(root: Path) -> tuple[Config, dict[str, LockAsset]]:
+    """Sync only when needed, complete local settings, then reload. Caller holds the sync lock."""
+    config = load_config(root)
+    if _sync_needed(config, load_lock(config)):
+        _sync_assets_locked(config, None)
+    else:
+        text, added = _complete_local_settings(config)
+        if added:
+            _write_text_atomic(root, LOCAL_ASSETS_REL, text)
+            for setting in added:
+                print(f"added setting: {LOCAL_ASSETS_REL} [{setting}]")
+    config = load_config(root)
+    lock = load_lock(config)
+    validate(config, lock)
+    return config, lock
+
+
+def _local_candidates(config: Config) -> list[tuple[str, str, str, str]]:
+    """(section, default key, asset id, kind) for every local asset in the repo tree."""
+    external_targets = [asset.target for asset in config.assets if not asset.is_local]
+    result: list[tuple[str, str, str, str]] = []
+    for path in sorted((config.root / "skills").glob("*")):
+        if (
+            path.is_dir()
+            and (path / "SKILL.md").is_file()
+            and not any(_paths_overlap(f"skills/{path.name}", target) for target in external_targets)
+        ):
+            result.append(("skills", path.name, f"local/{path.name}", "skill"))
+    for path in sorted((config.root / "agents").glob("*.md")):
+        result.append(("agents", path.stem, f"local/agent/{path.name}", "agent"))
+    for path in sorted((config.root / "context").glob("*.md")):
+        result.append(("context", path.name, f"local/context/{path.name}", "context"))
+    return result
+
+
+def _resolve_setting(config: Config, data: Mapping[str, object], name: str) -> tuple[str, str, str]:
+    """Map a full or short asset name to (section, key, asset id) in assets.local.toml."""
+    matches: dict[str, tuple[str, str, str]] = {}
+    for asset in config.assets:
+        if not asset.is_local and name in (asset.id, asset.id.rsplit("/", 1)[-1]):
+            matches[asset.id] = ("external", asset.id, asset.id)
+    for section, key, asset_id, kind in _local_candidates(config):
+        filename = PurePosixPath(asset_id).name
+        stem = filename if kind == "skill" else PurePosixPath(filename).stem
+        if name in (asset_id, filename, stem):
+            table = data.get(section)
+            # Reuse the spelling already in the file ("x" vs "x.md").
+            existing = next(
+                (k for k in (filename, stem) if isinstance(table, dict) and k in table), key
+            )
+            matches[asset_id] = (section, existing, asset_id)
+    if not matches:
+        raise SyncError(f"未知の asset です: {name}（agents ls -v で一覧を確認できます）")
+    if len(matches) > 1:
+        raise SyncError(
+            f"{name} に複数の候補があります: {', '.join(sorted(matches))}。完全な ID で指定してください"
+        )
+    return next(iter(matches.values()))
+
+
+def _replace_bool_setting(text: str, section: str, key: str, value: bool) -> str:
+    lines = text.splitlines(keepends=True)
+    current: str | None = None
+    for index, line in enumerate(lines):
+        if line.lstrip().startswith("["):
+            try:
+                header = tomllib.loads(line)
+            except tomllib.TOMLDecodeError:
+                continue
+            name = next(iter(header), None)
+            current = name if len(header) == 1 and header[name] == {} else None
+            continue
+        if current != section:
+            continue
+        try:
+            parsed = tomllib.loads(line)
+        except tomllib.TOMLDecodeError:
+            continue
+        if parsed == {key: not value}:
+            match = re.match(r"(\s*[^=]+=\s*)(?:true|false)(.*)", line, re.DOTALL)
+            if match:
+                lines[index] = match.group(1) + _toml_value(value) + match.group(2)
+                return "".join(lines)
+    raise SyncError(
+        f"{LOCAL_ASSETS_REL} の [{section}] {key} を書き換えられません。"
+        f"[{section}] テーブル形式で 1 行 1 キーにしてください"
+    )
+
+
+def set_enabled(config: Config, names: Sequence[str], enabled: bool) -> int:
+    path = config.root / LOCAL_ASSETS_REL
+    current = tomllib.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    targets = [_resolve_setting(config, current, name) for name in dict.fromkeys(names)]
+    extra: dict[str, dict[str, object]] = {}
+    for section, key, _asset_id in targets:
+        extra.setdefault(section, {})[key] = enabled
+    text, added = _complete_local_settings(config, extra)
+    target_settings = {f"{section}.{key}" for section, key, _ in targets}
+    changed = False
+    label = "on" if enabled else "off"
+    for section, key, asset_id in targets:
+        table = current.get(section)
+        before = table.get(key) if isinstance(table, dict) else None
+        if tomllib.loads(text)[section][key] != enabled:
+            text = _replace_bool_setting(text, section, key, enabled)
+        if before is enabled:
+            print(f"{label}: {asset_id}（変更なし）")
+        else:
+            print(f"{label}: {asset_id}")
+            changed = True
+    if added or changed:
+        _write_text_atomic(config.root, LOCAL_ASSETS_REL, text)
+    for setting in added:
+        if setting not in target_settings:
+            print(f"added setting: {LOCAL_ASSETS_REL} [{setting}]")
+    if changed:
+        print("配布先へ反映するには agents を実行してください")
+    return 0
+
+
+def list_assets(config: Config, lock: Mapping[str, LockAsset], *, verbose: bool) -> int:
+    print(f"harnesses: {', '.join(config.default_harnesses)}")
+    print(f"kinds: {', '.join(config.default_kinds)}")
+    rows = [
+        (apply_enabled(config, asset), asset.kind, asset.id)
+        for asset in config.assets
+        if not asset.is_local
+    ]
+    local_enabled = {asset.id for asset in config.assets if asset.is_local}
+    rows.extend(
+        (asset_id in local_enabled, kind, asset_id)
+        for _section, _key, asset_id, kind in _local_candidates(config)
+    )
+    enabled_count = sum(1 for enabled, _kind, _id in rows if enabled)
+    print(f"assets: {enabled_count} on / {len(rows) - enabled_count} off")
+    if verbose:
+        for enabled, kind, asset_id in rows:
+            print(f"  {'on ' if enabled else 'off'}  {kind:<7}  {asset_id}")
+    if _sync_needed(config, lock):
+        print("! cache が sources.toml と一致しません（agents 実行時に同期します）")
+    for setting in config.ignored_settings:
+        print(f"! ignored setting: {setting}")
     return 0
 
 
@@ -2263,71 +2450,85 @@ def _asset_option(values: list[str] | None) -> frozenset[str] | None:
 
 
 def _find_root(explicit: str | None) -> Path:
-    if explicit:
-        return Path(explicit)
-    current = Path.cwd().resolve()
-    for candidate in (current, *current.parents):
-        if (candidate / "sources.toml").is_file():
-            return candidate
-    raise SyncError("sources.toml を現在地または親 directory から見つけられません")
+    # The catalog package lives at the repository root, so the root is fixed
+    # regardless of the working directory.
+    root = Path(explicit) if explicit else Path(__file__).resolve().parent.parent
+    if not (root / "sources.toml").is_file():
+        raise SyncError(f"sources.toml が見つかりません: {root}")
+    return root
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="外部 agent asset を commit pin で同期します")
-    parser.add_argument("--root", help="repository root（通常は自動検出）")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    subparsers.add_parser("validate", help="manifest と lock を検証")
-    sync_parser = subparsers.add_parser(
-        "sync", help="外部 Git から .cache と lock へ同期"
+    # SUPPRESS keeps a subcommand's unset option from overwriting the top-level value.
+    selection = argparse.ArgumentParser(add_help=False)
+    selection.add_argument(
+        "-H", "--harness", default=argparse.SUPPRESS,
+        help=f"配布先（カンマ区切り、all で全部）: {','.join(HARNESSES)}",
     )
-    sync_parser.add_argument("--asset", action="append", help="asset ID（複数回/カンマ区切り可）")
-    for name in ("diff", "apply"):
-        command = subparsers.add_parser(name, help=f"選択した出力を{name}")
-        command.add_argument("--kind", help="skill,agent,context（カンマ区切り）")
-        command.add_argument("--harness", help="cursor,opencode,omp,pi,shared,hermes,claude")
-        if name == "diff":
-            command.add_argument("--output", help="差分 plan の保存先")
-    update_parser = subparsers.add_parser(
-        "update", help="remote HEAD へ pin を進め cache/lock を同期"
+    selection.add_argument(
+        "-k", "--kind", default=argparse.SUPPRESS,
+        help=f"種類（カンマ区切り、all で全部）: {','.join(KINDS)}",
     )
-    update_parser.add_argument(
-        "--source", action="append", help="source ID（複数回/カンマ区切り可）"
+    parser = argparse.ArgumentParser(
+        prog="agents",
+        parents=[selection],
+        description="skill・agent・context を各ツールへ配布します。"
+        "引数なしで、必要な同期と配布をまとめて実行します。",
     )
-    subparsers.add_parser("check-updates", help="remote HEAD と pin を比較")
-    subparsers.add_parser("status", help="同期状態を表示")
+    parser.add_argument("--root", help=argparse.SUPPRESS)
+    subparsers = parser.add_subparsers(dest="command", metavar="<command>")
+    diff_parser = subparsers.add_parser(
+        "diff", parents=[selection], help="配布せずに差分を表示（差分ありで終了コード 1）"
+    )
+    diff_parser.add_argument("-o", "--output", help="差分の保存先（リポジトリ内のパス）")
+    up_parser = subparsers.add_parser(
+        "up", parents=[selection], help="取得元の最新 commit へ pin を進めて配布"
+    )
+    up_parser.add_argument(
+        "-n", "--dry-run", action="store_true", help="更新候補の確認だけ（候補ありで終了コード 1）"
+    )
+    up_parser.add_argument(
+        "-s", "--source", action="append", help="対象の source ID（複数回/カンマ区切り可）"
+    )
+    for name, help_text in (("on", "asset を有効にする"), ("off", "asset を無効にする")):
+        toggle = subparsers.add_parser(name, help=help_text)
+        toggle.add_argument("names", nargs="+", metavar="NAME", help="asset ID または短い名前（例: tdd）")
+    ls_parser = subparsers.add_parser("ls", help="配布先と asset の件数・問題を表示")
+    ls_parser.add_argument("-v", "--verbose", action="store_true", help="asset ごとに表示")
     return parser
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = build_parser()
-    args = parser.parse_args(argv)
+    args = build_parser().parse_args(argv)
+    command = args.command
     try:
-        config = load_config(_find_root(args.root))
-        if args.command == "validate":
-            with _exclusive_sync_lock(config.root):
-                lock = load_lock(config)
-                validate(config, lock)
-            print("validation passed")
-            return 0
-        if args.command == "sync":
-            return sync_assets(config, _asset_option(args.asset))
-        if args.command == "update":
-            return update_sources(config, _asset_option(args.source))
-        with _exclusive_sync_lock(config.root):
-            lock = load_lock(config)
-            validate(config, lock)
-            if args.command == "check-updates":
-                return check_updates(config)
-            if args.command == "status":
-                return status(config, lock)
-            kinds = _parse_selection(args.kind, config.default_kinds, KINDS, "kind")
+        root = _find_root(args.root)
+        if command in ("on", "off"):
+            with _exclusive_sync_lock(root):
+                return set_enabled(load_config(root), args.names, command == "on")
+        if command == "ls":
+            with _exclusive_sync_lock(root):
+                config = load_config(root)
+                return list_assets(config, load_lock(config), verbose=args.verbose)
+        if command == "up":
+            config = load_config(root)
+            sources = _asset_option(args.source)
+            if args.dry_run:
+                return check_updates(config, sources)
+            update_sources(config, sources)
+        with _exclusive_sync_lock(root):
+            config, lock = _prepare_locked(root)
+            kinds = _parse_selection(getattr(args, "kind", None), config.default_kinds, KINDS, "kind")
             harnesses = _parse_selection(
-                args.harness, config.default_harnesses, config.allowed_harnesses, "harness"
+                getattr(args, "harness", None),
+                config.default_harnesses,
+                config.allowed_harnesses,
+                "harness",
             )
             lines, operations, pi_change, applied_update = plan_changes(
                 config, lock, kinds, harnesses
             )
-            if args.command == "diff":
+            if command == "diff":
                 # Color only interactive stdout; --output and pipes stay plain.
                 use_color = (not args.output) and _color_enabled_for_stdout()
                 output = render_diff_output(lines, color=use_color)
@@ -2342,9 +2543,9 @@ def main(argv: Sequence[str] | None = None) -> int:
                     path.write_text(plain, encoding="utf-8", newline="\n")
                 sys.stdout.write(output)
                 return 1 if lines else 0
-            return apply_changes(
-                config, operations, pi_change, applied_update, kinds=kinds
-            )
+            apply_changes(config, operations, pi_change, applied_update, kinds=kinds)
+            print(_diff_summary_line(lines) or "no changes")
+            return 0
     except SyncError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

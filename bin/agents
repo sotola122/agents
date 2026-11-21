@@ -1,0 +1,25 @@
+#!/bin/sh
+# Entry point for the agents catalog CLI. Symlink this file into PATH.
+set -eu
+
+# Follow symlinks so the repository is found from ~/.local/bin/agents.
+script=$0
+while [ -L "$script" ]; do
+	link=$(readlink "$script")
+	case $link in
+	/*) script=$link ;;
+	*) script=$(dirname "$script")/$link ;;
+	esac
+done
+root=$(cd "$(dirname "$script")/.." && pwd -P)
+
+# python -m imports from the working directory first; run from the root so
+# another checkout's catalog package can never shadow this one.
+cd "$root"
+for python in python3 python; do
+	if command -v "$python" >/dev/null 2>&1; then
+		exec "$python" -m catalog "$@"
+	fi
+done
+echo "agents: python3 が見つかりません（Python 3.11 以降が必要です）" >&2
+exit 127

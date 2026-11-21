@@ -1,14 +1,19 @@
-# Machine-local enable list for catalog diff/apply (not tracked by git).
-# Copy to assets.local.toml and set true for assets you want distributed.
+# Machine-local settings for the agents command (not tracked by git).
+# `agents` creates and completes assets.local.toml; this file shows the shape.
+# Toggle entries with `agents on <name>` / `agents off <name>` or edit by hand.
 #
+# [apply] harnesses: default destinations for agents / agents diff / agents up.
 # [external] keys are asset.id values from sources.toml.
-#   - section omitted: all external assets are included in diff/apply
-#   - section present: only true entries are included (false/omitted = off)
+#   - section omitted: all external assets are distributed
+#   - section present: only true entries are distributed (false/omitted = off)
 # [skills]/[agents]/[context] control local tree assets (opt-in: true to include).
-# A true key whose path is gone is kept and ignored; it does not fail diff/apply.
-# sync always uses every external asset pinned in sources.toml.
+# A true key whose path is gone is kept and ignored (shown by `agents ls`).
+# Sync always fetches every external asset pinned in sources.toml.
 #
 # Harnesses follow apply.allowed_harnesses ∩ kind support.
+
+[apply]
+harnesses = ["cursor"]
 
 [external]
 "mattpocock/ask-matt" = true

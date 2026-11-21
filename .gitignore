@@ -1,6 +1,5 @@
 # External sync cache and machine-local defaults
 /.cache/
-/apply.local.toml
 /assets.local.toml
 /.hermes/
 

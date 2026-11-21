@@ -5,65 +5,79 @@ agent、AGENTS.md、skillsを一か所で管理し、Cursor や OpenCode など�
 外部リポジトリから取り込むファイルはコミット ID で固定します。
 そのため、どこからどの版を取り込んだのかを `sources.toml` と `sources.lock.toml` で確認できます。
 
-## ディレクトリ構成
+skill ごとの取り込み元・pin の経緯・有効化の注意は [docs/assets.md](docs/assets.md) にまとめています。
 
-配布元となるファイルは、種類ごとに三つのディレクトリへ置きます。
+## 導入
 
-- `skills/`：このリポジトリで直接管理するエージェントスキル（local asset）
-- `agents/`：このリポジトリで直接管理するエージェント向けプロンプト
-- `context/`：このリポジトリで直接管理する、各ツールで共有する指示
+Python 3.11 以降と Git が必要です。
 
-Anago はレビュー／ワークフロー skill を自リポジトリで管理する。このリポジトリでは CLI 委譲用 harness skill（`skills/pi`、`skills/codex`、`skills/claude`、`skills/cursor`、`skills/omp`）を管理する。
-各 harness skill は単一の `SKILL.md` で CLI の起動、権限、workspace、入出力、検証、native session の再開を扱い、task prompt、review lens は同梱しない。
-`big-bang`・`claude`・`cursor`・`codex`・`pi`・`omp` を配布するときは、共通の履歴管理を担う `harness-sessions` も有効にします。
-履歴は対象 workspace 内の呼び出し元 harness directory に保存します（例: `.hermes/agent-sessions/cursor/`）。
-同じ directory の `.gitignore` で `/agent-sessions/` を除外し、native session ID、決定事項、検証結果、次の作業を残します。
-Big Bang の初回・継続待機は10分以上とし、タイムアウト後は状態を確認して待機継続・助言・中断を判断します。
-`omp` は Oh My Pi CLI の実行・再開を扱います。既存環境では `assets.local.toml` の `[skills]` に `omp = true` と `harness-sessions = true` を設定してから配布します。
+macOS / Linux：
 
-`design-docs` は設計判断と代替案の比較を含む日本語の設計文書を作成します。
-ページ数は設計内容に応じて決め、ユーザーがページ数を指定した場合のみその指定に従います。シーケンス図やクラス図などの図はMermaidで記述します。
-既存環境では `assets.local.toml` の `[skills]` に `harness-sessions = true` と `design-docs = true` を追加してから `catalog diff` / `catalog apply` を実行します。
+```console
+curl -fsSL https://raw.githubusercontent.com/sotola122/agents/main/install.sh | sh
+```
 
-`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `30c3b59a076ce228f05aa3036809297422f23dee` を基にしたローカルスキルです。
-取り込み済みの修正には、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外と手元・内側の宛先の拒否、つなぐ直前の引き直しと IPv6 から IPv4 への短い待ち、PMC を Europe PMC の全文 XML から取ること、YouTube 自動字幕を動画の元の言語に限ること、和文が3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査、検索結果の URL・本文・フィードを他人の入力として扱う検査、OCR の言語選択と低い確信度の拒否、止めたあとの詳細レポート（`digest.py`）、原文の改行を LF にそろえること、Markdown の箇条書きにまたがる抜き書きの照合、保存先に同名フォルダがあるときの拒否、`pdftotext` が無いときの pdfminer.six、数の直前の負号を落とした抜き書きの拒否、双方向制御文字をエスケープした保存名の検査、取得記録への時刻、Playwright で外のページを開くときの明示的なサンドボックス（起動できなければ `--no-sandbox` を足さずユーザーのブラウザへ切り替える）が含まれます。履歴を横断するダッシュボード（`dashboard.py`）は、調査1件の手順に使わないため同梱していません。
-スキル本文・補足資料・コード内の説明は英語にし、調査結果・調査マップ・HTMLレポートは日本語で出力します。引用原文は保持し、日本語訳を添えます。
-調査資料は作業プロジェクト内の `.research/<topic>/` に保存します。`/deepsearch <topic>` で原典をたどる調査、`/deepsearch watch <topic>` で登録したRSS/Atomの新着を確認できます。
-資料取得・引用照合・更新確認・引用追跡のスクリプトとMITライセンスを同梱しています。
-英語の手順と日本語の成果物へ改変して同梱しているため、`sources.toml` には登録しません。上流の更新は自動では取り込みません。
-既存環境では `assets.local.toml` の `[skills]` に `deepsearch = true` を追加してから `catalog diff` / `catalog apply` を実行します。
+Windows（PowerShell）：
 
-`summary` は `/summary` で現在の会話を引き継ぎ用の要約にまとめ、新しいセッション・別 harness・分岐先の agent が作業を継続できるようにします（保存先は OS の一時ディレクトリ）。
-長くなった orchestrator セッションのトークン消費を抑えるため、タスクの区切りで要約して新しいセッションに切り替えます。
-有効にするには `assets.local.toml` の `[skills]` に `summary = true` を追加します。
+```powershell
+irm https://raw.githubusercontent.com/sotola122/agents/main/install.ps1 | iex
+```
 
-Herdrの操作skillは公式リポジトリをcommit `e8d7d9705a7a2c89cef4dd42079379f05685af87`で固定して取り込みます。
-`skills/herdr` の tree は直前の pin `ee5bfb5041bb3e4a49d591c72308aae3c81ecdde` と同一です。進めた差分は、handoff の再試行、大量 pane の回収、明るい端末の theme、止まった TUI への画面キューです。待機時間の要件は変わりません。
-このskillは`HERDR_ENV=1`のmanaged pane内だけで動作し、実際のcommand構文はinstalled `herdr` binaryのhelpを正とします。
+clone 済みなら、リポジトリ内で `./install.sh`、または `powershell -ExecutionPolicy Bypass -File .\install.ps1` を実行します。
 
-unslopのskillは https://github.com/heydamir/unslop をcommit `620163eedb3529d9cd23a3994ed8d287d06f760d`で固定して取り込みます。
-vibecodedなUIを、製品に合う画面へ直すskillです。ライセンスは CC-BY-4.0 です。
-path は `skills/unslop`、配布先は `skills/unslop` です。SKILL.md の相対参照（agents/・references/・scripts/）をそのまま配布します。
+導入スクリプトは次の順に処理します。
 
-ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）で固定して取り込みます。
-6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
-6本の skill tree は直前の pin `09c434ab73ca43761c5d8b0c5d341926c2fba710` と同一です。進めた差分は、取り込まない band hook の修正と README の PhotoReunion です。
+1. Python 3.11 以降と Git を確認します。
+2. clone の外から実行した場合は `~/agents` へ clone します（`AGENTS_DIR` で変更、clone 元は `AGENTS_REPO`）。既にある clone は更新しません。
+3. `agents` コマンドを PATH に置きます。
+   - macOS / Linux：`~/.local/bin/agents` から `bin/agents` への symlink（`AGENTS_BIN_DIR` で変更）。同名の別ファイルがあれば中断します。
+   - Windows：リポジトリの `bin` をユーザーの PATH に追加します（`bin/agents.cmd`）。
+4. `agents` で配布し、`agents ls` で配布先と件数を表示します。配布しない場合は `--no-apply`（PowerShell は `-NoApply`）を付けます。
 
-yomiyasuのskillは公式リポジトリをcommit `c49d5f1bee91258e33e1febc3569c6c87be7669e`（v3.2.3）で固定して取り込みます。
-直前の pin `db78b9bc5e868549b517a037df7a4d1c93edac23`（v3.1.0）から、配布する差分は SKILL.md の version と読点の残し方、references の強調語と slop catalog、lint の読点判定、diff の保証・再発防止の誓いの比較です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
-スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
-lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
-frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
+`agents` は同名の skill directory を配布先で置き換えます。既存の環境へ初めて導入するときは、`--no-apply` で導入してから `agents diff` で確認してください。
 
-mattpocock/skills は commit `abeeaf95660ba9e8b7c753eb38f441ca707a8823` で固定します。
-登録済み skill の tree は直前の pin `5863806dd4e15c63174bee4e7515a4256792ecfa` と同一です。進めた差分は、未登録の in-progress `software-factory` の frontmatter を YAML として引用したことと、その検査を CI に足したことです。登録しません。`chief-of-staff` も未登録のままです。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
-upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
-`d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
-domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
+## 使い方
 
-`catalog/` には、外部リポジトリからファイルを取り込み、各ツールの設定ディレクトリへ配布するコマンドが入っています。
+| コマンド | 動作 |
+|---|---|
+| `agents` | 必要なときだけ外部リポジトリを同期し、有効な asset を配布する |
+| `agents diff` | 配布せずに差分を表示する |
+| `agents up` | 取得元の最新 commit へ pin を進め、同期して配布する |
+| `agents up -n` | 更新候補を表示するだけ（書き込みなし） |
+| `agents on <name>...` / `agents off <name>...` | asset を有効化・無効化する（配布は次の `agents` で行う） |
+| `agents ls` | 配布先・有効な件数・設定の問題を表示する（`-v` で asset ごと） |
 
-配布先は次のとおりです。
+- `<name>` には asset ID（`mattpocock/tdd`、`local/pi`）か短い名前（`tdd`、`pi`）を指定します。短い名前が複数に当てはまる場合はエラーになり、候補を表示します。
+- `agents`・`agents diff`・`agents up` は `-H <harness>` で配布先を、`-k <kind>` で種類を一時的に変えられます。カンマ区切りで複数、`all` で全部を指定できます。
+  - harness：`cursor`、`opencode`、`omp`、`pi`、`shared`、`hermes`、`claude`
+  - kind：`skill`、`agent`、`context`
+  - 対応しない組み合わせ（例：agent と pi、context と claude）は飛ばします。一つも対応しない指定だけエラーにします。
+- `agents up -s <source>` で特定の取得元だけを更新します。
+- `agents` はどのディレクトリから実行しても、このリポジトリを対象にします。
+
+`agents` と `agents diff` は、`sources.toml` と `sources.lock.toml`・`.cache` が食い違うとき（初回、pin の変更、asset の追加・削除、cache の破損）だけ外部リポジトリへ接続します。`agents up` は常に接続します。`agents on` / `off` / `ls` は接続しません。
+
+### 差分の表示
+
+`agents diff` の各行は次の記号です。
+
+- `+`：追加
+- `~`：更新
+- `-`：削除
+
+先頭の `summary: +N  ~N  -N` はファイル単位の件数です。`agents` も最後に同じ形式で件数を表示します。
+以前配布し、今回の対象外になった asset は `[… → harness remove]` と表示され、`-` 行が削除予定です。
+ターミナル表示時は `+` 緑 / `~` 黄 / `-` 赤で色分けします（`NO_COLOR` 設定時やパイプ／`--output` では無色）。
+
+### 終了コード
+
+| コマンド | 0 | 1 | 2 |
+|---|---|---|---|
+| `agents`、`agents up`、`on`、`off`、`ls` | 成功 | — | 設定・引数の誤り、失敗 |
+| `agents diff` | 差分なし | 差分あり | 設定・引数の誤り、失敗 |
+| `agents up -n` | 更新候補なし | 更新候補あり | 設定・引数の誤り、失敗 |
+
+## 配布先
 
 - Cursor：`~/.cursor/`
 - OpenCode：`~/.config/opencode/`
@@ -73,169 +87,68 @@ domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `C
 - Claude Code：`~/.claude/skills/`（skill のみ）
 - Hermes：`${HERMES_HOME}/skills/anago/`（`HERMES_HOME` 未設定時は `~/.hermes/skills/anago/`）
 
-## 動作環境
+各配布先には、配布したファイルの一覧 `.catalog-applied.toml` を置きます。`agents` が削除するのは、この一覧にあり今回の対象外になったものだけです。
 
-Python 3.11 以降と Git が必要です。
+## 設定（assets.local.toml）
 
-以下のコマンドはリポジトリのルートで実行します。
-
-## 初回の同期と配布
-
-```console
-python -m catalog validate
-```
-
-外部リポジトリから指定のバージョンを取得し、`.cache` とロックファイルを更新します。
-
-```console
-python -m catalog sync
-```
-
-配布先との差分を確認します。
-
-```console
-python -m catalog diff
-```
-
-差分に問題がなければ、ファイルを配布します。
-
-```console
-python -m catalog apply
-```
-
-最後に、取り込んだファイルの状態を確認します。
-
-```console
-python -m catalog status
-```
-
-初期設定では Cursor が配布先です。
-別のツールへ配布する方法は「配布先を選ぶ」で説明します。
-
-## 必要なファイルだけを同期する
-
-`sources.toml` の `[[assets]]` には、外部リポジトリから取り込むファイル一式が登録されています。
-
-`--asset` にその ID を渡すと、指定したものだけを同期できます。
-
-```console
-python -m catalog sync --asset example/tdd
-```
-
-複数の ID は、`--asset` を繰り返すか、カンマで区切って指定します。
-
-`sync` は実行のたびに `.cache/sources` を作り直し、参照されなくなったキャッシュを削除します。
-
-## 配布先を選ぶ
-
-`diff` と `apply` では、配布するファイルの種類と配布先を指定できます。
-
-```console
-# Cursor へスキルだけを配布する
-python -m catalog diff --harness cursor --kind skill
-python -m catalog apply --harness cursor --kind skill
-
-# Cursor へスキルと共通指示を配布する
-python -m catalog diff --harness cursor --kind skill,context
-python -m catalog apply --harness cursor --kind skill,context
-
-# Cursor とSharedへ同時に配布する
-python -m catalog apply --harness cursor,shared --kind skill
-```
-
-`--kind` には `skill`、`agent`、`context` を指定します。
-
-`--harness` には `cursor`、`opencode`、`omp`、`pi`、`shared`、`hermes`、`claude` を指定します。
-`claude`（Claude Code）は skill だけを配布し、agent と context は対象外です。
-ここでいう `harness` は、配布先となるツールや共通ディレクトリを指します。
-
-指定を省略すると、`sources.toml` の `[apply]` にある `default_kinds` と `default_harnesses` が使われます。
-
-特定のlocal skillを一部のharnessだけから除外する場合は、`sources.toml`の`[apply.local_skill_excludes]`にharnessごとのskill名を指定します。
-現在はHermes標準のCodex CLI skillと重複するため、このリポジトリの`skills/codex`だけをHermesへのapply対象から除外しています。
+端末ごとの設定は `assets.local.toml`（Git 管理外。雛形は `assets.local.toml.example`）にまとめます。
+`agents` を実行すると、足りない設定を追記します。既存の値とコメントは保持します。
 
 ```toml
-[apply.local_skill_excludes]
-hermes = ["codex"]
-```
+[apply]
+harnesses = ["cursor", "omp", "claude"]
 
-この除外はlocal skillだけに適用されます。`codex`はCursor、OpenCode、OMP、Pi、Sharedには従来どおり配布できます。
-
-端末ごとに既定の配布先を変えたい場合は、`apply.local.toml` を作成します。
-このファイルは Git の管理対象外です。
-
-```toml
-default_harnesses = ["cursor"]
-```
-
-`diff` / `apply` に含める asset は、`assets.local.toml` で制御します（Git 管理外。雛形は `assets.local.toml.example`）。
-
-```toml
 [external]
 "mattpocock/tdd" = true
 "mattpocock/ask-matt" = false
 
 [skills]
 pi = true
-codex = true
-claude = true
-cursor = true
 omp = true
 harness-sessions = true
 ```
 
-- `[external]` … `sources.toml` の `asset.id`。セクション省略時は外部をすべて適用。あるときは `true` だけ適用
-- `[skills]` / `[agents]` / `[context]` … リポジトリ直下の local 資産（`true` のものだけ適用）
-- `sync` は `sources.toml` の外部 pin をすべて同期する（enable の影響なし）
+- `[apply] harnesses`：既定の配布先。ないときは、`.catalog-applied.toml` がある配布先（なければ設定 directory がある配布先）を追記します。どちらもなければ `sources.toml` の `[apply] default_harnesses` を使います。
+- `[external]`：`sources.toml` の asset ID。セクションがないときは外部 asset をすべて配布し、あるときは `true` だけ配布します。追記する値は、セクションがあれば `false`、なければ `true` です。
+- `[skills]` / `[agents]` / `[context]`：このリポジトリ直下の local asset。`true` だけ配布します。新しい `skills/<name>/SKILL.md` は `false` で追記します。ドットを含む名前は引用符で囲みます（例：`"AGENTS.md" = true`）。
 
-`sync`（`update` に伴う同期を含む）が成功すると、`assets.local.toml` に未登録の外部 asset と `skills/<name>/SKILL.md` を持つ local skill の設定を追記します。ファイルがなければ作成し、既存の値とコメントは保持します。
-追記する値は、既存の `[external]` がある場合は `false`、省略されていた場合は従来の適用範囲を維持するため `true`、local skill は `false` です。`--asset` 指定時も設定の補完は一覧全体が対象です。
-`[external]` に現在の `sources.toml` にない ID が残っている場合、設定を保持したまま `ignored setting` と表示し、適用対象から除外します。
-`[skills]` / `[agents]` / `[context]` で `true` のキーに対応する path がリポジトリに無い場合も同様です。削除済みの skill 名（例: `document-writing`）が残っていても `diff` / `apply` / `validate` は失敗しません。
+値は `agents on` / `agents off` で書き換えられます。手で編集してもかまいません。
 
-`sources.toml` への local asset 登録は不要です（登録するとエラーになります）。
+`sources.toml` から消えた ID や、リポジトリから消えた local asset の設定は削除せずに残し、配布の対象から外します。`agents ls` が `! ignored setting` として表示します。
 
-## コマンド一覧
+以前の `apply.local.toml` は廃止しました。残っているとエラーになるので、`default_harnesses` の値を `[apply] harnesses` へ移してから削除してください。
 
-- `validate`：設定ファイルとロックファイルの整合性を検証します。
-- `sync`：外部リポジトリから、`sources.toml` に固定したコミット（pin）のファイルを取得し、キャッシュとロックファイルを更新します。
-- `update`：取得元の HEAD へ pin を進め、その source のキャッシュとロックファイルまで同期します。
-- `diff`：管理元（local はリポジトリ内、外部は `.cache`）と配布先を比較し、変更内容を表示します。
-- `apply`：選択したファイルを配布先へコピーします。
-- `status`：既定の選択内容と、各ファイルの同期状態を表示します。
-- `check-updates`：取得元の HEAD と固定中のコミット ID を比較します（書き込みなし）。
+### 特定の配布先から local skill を外す
 
-`diff` の各行は次の記号です。
+`sources.toml` の `[apply.local_skill_excludes]` に、配布先ごとの skill 名を指定します。
+現在は Hermes 標準の Codex CLI skill と重なるため、`skills/codex` だけを Hermes の対象から外しています。
 
-- `+`：追加（add）
-- `~`：更新（update）
-- `-`：削除（remove）
+```toml
+[apply.local_skill_excludes]
+hermes = ["codex"]
+```
 
-先頭の `summary: +N  ~N  -N` はファイル単位の件数です。
-以前 apply 済みで今回の対象外になった asset は `[… → harness remove]` と表示され、`-` 行が削除予定です。
-ターミナル表示時は `+` 緑 / `~` 黄 / `-` 赤で色分けします（`NO_COLOR` 設定時やパイプ／`--output` では無色）。
+この除外は local skill だけに適用されます。
 
-`apply` は更新後に残らないファイルを `removed <asset> -> <path>` と記録します。`sync` / `update` で不要なキャッシュなどを削除した場合も、削除完了後に `removed: <path>` を表示します。
+## ディレクトリ構成
 
-`validate`、`diff`、`apply`、`status` はネットワークに接続しません。
+- `skills/`：このリポジトリで直接管理するエージェントスキル（local asset）
+- `agents/`：このリポジトリで直接管理するエージェント向けプロンプト
+- `context/`：このリポジトリで直接管理する、各ツールで共有する指示
+- `catalog/`：`agents` コマンドの実装（Python 標準ライブラリと Git だけを使用）
+- `bin/`：`agents` コマンドの入口（`agents`、`agents.cmd`）
+- `docs/`：asset ごとの補足
 
-`sync`、`update`、`check-updates` は外部リポジトリへ接続します。
-
-`diff` は差分がある場合に終了コード `1`、差分がない場合に `0` を返します。
-終了コード `1` は失敗ではなく、配布先に変更が必要であることを表します。
-
-`check-updates` は更新候補がある場合に終了コード `1`、候補がない場合に `0` を返します。
-`update` は更新の有無にかかわらず成功時は終了コード `0` を返します。
-
-設定や引数に誤りがある場合、各コマンドは終了コード `2` を返します。
+local asset は `skills/<name>/`・`agents/<name>.md`・`context/<name>.md` に置き、`agents on <name>` で有効にします。
+`sources.toml` へは登録しません（登録するとエラーになります）。
 
 ## 外部リポジトリのファイルを登録する
 
-外部リポジトリからファイルを取り込むには、`sources.toml` に取得元と管理対象を追加します。
+`sources.toml` に取得元と管理対象を追加します。
 
 `[[sources]]` には取得元の Git リポジトリを記述します。
 `rev` にはブランチ名やタグ名ではなく、40桁または64桁の完全なコミット ID（pin）を指定します。
-`sources.lock.toml` の `export_hash` はキャッシュ内容の整合性用ハッシュで、pin とは別物です。手編集せず、`sync` / `update` が生成します。
+`sources.lock.toml` の `export_hash` はキャッシュ内容の整合性用ハッシュで、pin とは別物です。手編集せず、`agents` / `agents up` が生成します。
 
 `[[assets]]` には取得するパス、論理上の配置名（`target`）、配布できるツールを記述します。
 
@@ -255,50 +168,8 @@ target = "skills/tdd"
 harnesses = ["cursor", "opencode", "shared"]
 ```
 
-登録後に `sync` を実行すると、指定したコミットから Git の管理対象ファイルだけを取得し、`.cache/sources/` へ配置して `sources.lock.toml` を更新します。
-外部資産はリポジトリ内の `skills/` / `agents/` / `context/` にはコピーしません。
-`diff` / `apply` はロック経由で `.cache` から読みます。
-
-```console
-python -m catalog sync --asset example/tdd
-```
-
-## 外部リポジトリの更新を取り込む
-
-取得元に新しいコミットがあるかは `check-updates` で確認できます。
-
-```console
-python -m catalog check-updates
-```
-
-pin を remote HEAD へ進め、キャッシュとロックまで一度に更新するには `update` を使います。
-特定の取得元だけ更新する場合は `--source` を指定します。
-
-```console
-python -m catalog update
-python -m catalog update --source example-skills
-```
-
-`update` のあと、配布先へ反映するには従来どおり `diff` / `apply` を実行します。
-
-## このリポジトリで直接管理するファイル
-
-外部リポジトリから取得しないスキルは、`skills/<name>/` に置き、`assets.local.toml` で有効化します。
-`sync` の対象外で、`diff` / `apply` はリポジトリ内のディレクトリをそのまま配布します。
-
-```toml
-# assets.local.toml（gitignored）
-[skills]
-pi = true
-codex = true
-claude = true
-cursor = true
-omp = true
-harness-sessions = true
-```
-
-`agents/` や `context/` の local ファイルも同様に `[agents]` / `[context]` で有効化できます。
-ドットを含むファイル名は TOML キーを引用符で囲みます（例: `"AGENTS.md" = true`）。
+登録後に `agents` を実行すると、指定したコミットから Git の管理対象ファイルだけを取得して `.cache/sources/` へ置き、`sources.lock.toml` を更新してから配布します。
+外部 asset はリポジトリ内の `skills/` / `agents/` / `context/` にはコピーしません。
 
 ## Hermes の旧 skill 配置を削除する
 
@@ -306,11 +177,11 @@ Hermes harness の skill は `HERMES_HOME` が設定されている場合は `${
 旧 `~/.hermes/skills/<name>/` からの migration 機能はありません。
 
 切り替え時は `~/.hermes/.catalog-applied.toml` の `kind = "skill"` entry と実在する directory を照合し、旧 `skills/<name>` に一致する管理対象だけを列挙します。
-一覧を確認してから各 directory を個別に削除し、`python -m catalog apply --harness hermes --kind skill` を実行してください。
+一覧を確認してから各 directory を個別に削除し、`agents -H hermes -k skill` を実行してください。
 `~/.hermes/skills/*` のような wildcard は使わず、manifest にない user-owned skill と `~/.hermes/skills/anago/` は残します。
 
 ## テスト
 
 ```console
-python -m unittest discover -s catalog/tests -v
+python3 -m unittest discover -s catalog/tests -v
 ```
