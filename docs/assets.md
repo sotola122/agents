@@ -34,9 +34,9 @@ unslopのskillは https://github.com/heydamir/unslop をcommit `620163eedb3529d9
 vibecodedなUIを、製品に合う画面へ直すskillです。ライセンスは CC-BY-4.0 です。
 path は `skills/unslop`、配布先は `skills/unslop` です。SKILL.md の相対参照（agents/・references/・scripts/）をそのまま配布します。
 
-ponytailのskillは公式リポジトリをcommit `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）で固定して取り込みます。
+ponytailのskillは公式リポジトリをcommit `ebd8654c2c627f721eb8f9c0d1bd4090a29f9e10`（v5.3.3 の 4 commit 後）で固定して取り込みます。
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
-6本の skill tree は直前の pin `09c434ab73ca43761c5d8b0c5d341926c2fba710` と同一です。進めた差分は、取り込まない band hook の修正と README の PhotoReunion です。
+6本の skill tree は直前の pin `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）と同一です。進めた差分は、取り込まない hook の stdin の UTF-8 decode と band import の修正、README の Braids です。
 
 yomiyasuのskillは公式リポジトリをcommit `c49d5f1bee91258e33e1febc3569c6c87be7669e`（v3.2.3）で固定して取り込みます。
 直前の pin `db78b9bc5e868549b517a037df7a4d1c93edac23`（v3.1.0）から、配布する差分は SKILL.md の version と読点の残し方、references の強調語と slop catalog、lint の読点判定、diff の保証・再発防止の誓いの比較です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
