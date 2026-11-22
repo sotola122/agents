@@ -2355,7 +2355,8 @@ def _resolve_setting(config: Config, data: Mapping[str, object], name: str) -> t
     return next(iter(matches.values()))
 
 
-def _replace_bool_setting(text: str, section: str, key: str, value: bool) -> str:
+def _replace_setting(text: str, section: str, key: str, value: object) -> str:
+    """Rewrite one `key = value` line under a [section] table, keeping its comment."""
     lines = text.splitlines(keepends=True)
     current: str | None = None
     for index, line in enumerate(lines):
@@ -2373,8 +2374,8 @@ def _replace_bool_setting(text: str, section: str, key: str, value: bool) -> str
             parsed = tomllib.loads(line)
         except tomllib.TOMLDecodeError:
             continue
-        if parsed == {key: not value}:
-            match = re.match(r"(\s*[^=]+=\s*)(?:true|false)(.*)", line, re.DOTALL)
+        if set(parsed) == {key}:
+            match = re.match(r"(\s*[^=]+=\s*)(?:true|false|\[[^\]\n]*\])(.*)", line, re.DOTALL)
             if match:
                 lines[index] = match.group(1) + _toml_value(value) + match.group(2)
                 return "".join(lines)
@@ -2384,35 +2385,93 @@ def _replace_bool_setting(text: str, section: str, key: str, value: bool) -> str
     )
 
 
+def write_settings(config: Config, changes: Mapping[str, Mapping[str, object]]) -> None:
+    """Set assets.local.toml values, appending missing keys and keeping comments."""
+    path = config.root / LOCAL_ASSETS_REL
+    original = path.read_text(encoding="utf-8") if path.exists() else ""
+    text, added = _complete_local_settings(config, changes)
+    for section, values in changes.items():
+        for key, value in values.items():
+            if tomllib.loads(text)[section][key] != value:
+                text = _replace_setting(text, section, key, value)
+    if text != original:
+        _write_text_atomic(config.root, LOCAL_ASSETS_REL, text)
+    changed = {f"{section}.{key}" for section, values in changes.items() for key in values}
+    for setting in added:
+        if setting not in changed:
+            print(f"added setting: {LOCAL_ASSETS_REL} [{setting}]")
+
+
 def set_enabled(config: Config, names: Sequence[str], enabled: bool) -> int:
     path = config.root / LOCAL_ASSETS_REL
     current = tomllib.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     targets = [_resolve_setting(config, current, name) for name in dict.fromkeys(names)]
-    extra: dict[str, dict[str, object]] = {}
-    for section, key, _asset_id in targets:
-        extra.setdefault(section, {})[key] = enabled
-    text, added = _complete_local_settings(config, extra)
-    target_settings = {f"{section}.{key}" for section, key, _ in targets}
-    changed = False
+    changes: dict[str, dict[str, object]] = {}
     label = "on" if enabled else "off"
+    changed = False
     for section, key, asset_id in targets:
+        changes.setdefault(section, {})[key] = enabled
         table = current.get(section)
-        before = table.get(key) if isinstance(table, dict) else None
-        if tomllib.loads(text)[section][key] != enabled:
-            text = _replace_bool_setting(text, section, key, enabled)
-        if before is enabled:
+        if isinstance(table, dict) and table.get(key) is enabled:
             print(f"{label}: {asset_id}（変更なし）")
         else:
             print(f"{label}: {asset_id}")
             changed = True
-    if added or changed:
-        _write_text_atomic(config.root, LOCAL_ASSETS_REL, text)
-    for setting in added:
-        if setting not in target_settings:
-            print(f"added setting: {LOCAL_ASSETS_REL} [{setting}]")
+    write_settings(config, changes)
     if changed:
         print("配布先へ反映するには agents を実行してください")
     return 0
+
+
+def purge_harness(config: Config, lock: Mapping[str, LockAsset], harness: str, *, dry_run: bool) -> list[str]:
+    """Plan (and unless dry_run, apply) removal of everything agents put in one harness."""
+    lines, operations, pi_change, applied_update = plan_changes(
+        dataclasses.replace(config, assets=()), lock, KINDS, (harness,)
+    )
+    if not dry_run:
+        apply_changes(config, operations, pi_change, applied_update, kinds=KINDS)
+    return lines
+
+
+def set_harnesses(root: Path, names: Sequence[str], enabled: bool) -> int:
+    """Toggle [apply] harnesses. Turning one off also removes what agents put there."""
+    with _exclusive_sync_lock(root):
+        config = load_config(root)
+        selected = _parse_selection(",".join(names), (), config.allowed_harnesses, "harness")
+        current = set(config.default_harnesses)
+        updated = current | set(selected) if enabled else current - set(selected)
+        harnesses = [harness for harness in config.allowed_harnesses if harness in updated]
+        if not harnesses:
+            raise SyncError("配布先が空になります。少なくとも 1 つ残してください")
+        label = "on" if enabled else "off"
+        for harness in selected:
+            unchanged = (harness in current) is enabled
+            print(f"{label} -H {harness}" + ("（変更なし）" if unchanged else ""))
+        write_settings(config, {"apply": {"harnesses": harnesses}})
+        if enabled:
+            if set(selected) - current:
+                print("配布するには agents を実行してください")
+            return 0
+        config = load_config(root)
+        lock = load_lock(config)
+        for harness in selected:
+            purge_harness(config, lock, harness, dry_run=False)
+    return 0
+
+
+def distribute(root: Path, *, purge: Sequence[str] = (), dry_run: bool) -> list[str]:
+    """Plan (and unless dry_run, apply) the default selection plus removal from ``purge`` harnesses."""
+    with _exclusive_sync_lock(root):
+        config, lock = _prepare_locked(root)
+        lines, operations, pi_change, applied_update = plan_changes(
+            config, lock, config.default_kinds, config.default_harnesses
+        )
+        if not dry_run:
+            apply_changes(config, operations, pi_change, applied_update, kinds=config.default_kinds)
+        for harness in purge:
+            if harness not in config.default_harnesses:
+                lines += purge_harness(config, lock, harness, dry_run=dry_run)
+        return lines
 
 
 def list_assets(config: Config, lock: Mapping[str, LockAsset], *, verbose: bool) -> int:
@@ -2490,9 +2549,14 @@ def build_parser() -> argparse.ArgumentParser:
     up_parser.add_argument(
         "-s", "--source", action="append", help="対象の source ID（複数回/カンマ区切り可）"
     )
-    for name, help_text in (("on", "asset を有効にする"), ("off", "asset を無効にする")):
+    for name, help_text in (("on", "asset・配布先を有効にする"), ("off", "asset・配布先を無効にする")):
         toggle = subparsers.add_parser(name, help=help_text)
-        toggle.add_argument("names", nargs="+", metavar="NAME", help="asset ID または短い名前（例: tdd）")
+        toggle.add_argument("names", nargs="*", metavar="NAME", help="asset ID または短い名前（例: tdd）")
+        toggle.add_argument(
+            "-H", "--harness", default=argparse.SUPPRESS,
+            help="配布先（カンマ区切り）。off は配布済みのファイルも削除する",
+        )
+    subparsers.add_parser("pick", help="配布先と asset を対話画面で切り替える")
     ls_parser = subparsers.add_parser("ls", help="配布先と asset の件数・問題を表示")
     ls_parser.add_argument("-v", "--verbose", action="store_true", help="asset ごとに表示")
     return parser
@@ -2504,8 +2568,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     try:
         root = _find_root(args.root)
         if command in ("on", "off"):
-            with _exclusive_sync_lock(root):
-                return set_enabled(load_config(root), args.names, command == "on")
+            enabled = command == "on"
+            harness = getattr(args, "harness", None)
+            if not args.names and harness is None:
+                raise SyncError(f"{command} には NAME か -H <harness> を指定してください")
+            if harness is not None:
+                set_harnesses(root, [harness], enabled)
+            if args.names:
+                with _exclusive_sync_lock(root):
+                    set_enabled(load_config(root), args.names, enabled)
+            return 0
+        if command == "pick":
+            from . import pick
+
+            return pick.run(root)
         if command == "ls":
             with _exclusive_sync_lock(root):
                 config = load_config(root)

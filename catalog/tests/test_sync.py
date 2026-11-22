@@ -780,6 +780,32 @@ class SyncCliTests(unittest.TestCase):
         self.assertEqual(code, 0, stderr)
         self.assertIn("on: local/demo", stdout)
 
+    def test_harness_on_off_updates_settings_and_off_removes_outputs(self) -> None:
+        settings = self.root / core.LOCAL_ASSETS_REL
+        settings.write_text('[apply]\nharnesses = ["cursor"] # mine\n', encoding="utf-8")
+
+        code, stdout, stderr = self._main("on", "-H", "omp")
+        self.assertEqual(code, 0, stderr)
+        self.assertIn("on -H omp", stdout)
+        self.assertIn('harnesses = ["cursor", "omp"] # mine', settings.read_text(encoding="utf-8"))
+        code, _, stderr = self._main()
+        self.assertEqual(code, 0, stderr)
+        omp_skill = self.home / ".omp" / "skills" / "demo" / "SKILL.md"
+        self.assertTrue(omp_skill.is_file())
+
+        code, stdout, stderr = self._main("off", "-H", "omp")
+        self.assertEqual(code, 0, stderr)
+        self.assertEqual(core._read_assets_local(self.root)["apply"], {"harnesses": ["cursor"]})
+        self.assertFalse(omp_skill.exists())
+        self.assertTrue((self.home / ".cursor" / "skills" / "demo" / "SKILL.md").is_file())
+        self.assertEqual(
+            self._run(lambda: core._load_applied_manifest(self.home / ".omp")), ()
+        )
+
+        code, _, stderr = self._main("off", "-H", "cursor")
+        self.assertEqual(code, 2)
+        self.assertIn("少なくとも 1 つ", stderr)
+
     def test_sync_cleans_stale_cache_entries(self) -> None:
         def exercise() -> None:
             config = core.load_config(self.root)

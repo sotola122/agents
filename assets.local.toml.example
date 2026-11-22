@@ -1,6 +1,7 @@
 # Machine-local settings for the agents command (not tracked by git).
 # `agents` creates and completes assets.local.toml; this file shows the shape.
-# Toggle entries with `agents on <name>` / `agents off <name>` or edit by hand.
+# Toggle entries with `agents pick`, `agents on|off <name>`, `agents on|off -H <harness>`,
+# or edit by hand.
 #
 # [apply] harnesses: default destinations for agents / agents diff / agents up.
 # [external] keys are asset.id values from sources.toml.

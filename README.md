@@ -44,10 +44,13 @@ clone 済みなら、リポジトリ内で `./install.sh`、または `powershel
 | `agents diff` | 配布せずに差分を表示する |
 | `agents up` | 取得元の最新 commit へ pin を進め、同期して配布する |
 | `agents up -n` | 更新候補を表示するだけ（書き込みなし） |
+| `agents pick` | 配布先と asset を対話画面で切り替え、保存後に配布するか確認する |
 | `agents on <name>...` / `agents off <name>...` | asset を有効化・無効化する（配布は次の `agents` で行う） |
+| `agents on -H <harness>` / `agents off -H <harness>` | 既定の配布先に追加する・外す（`off` は配布済みのファイルも削除する） |
 | `agents ls` | 配布先・有効な件数・設定の問題を表示する（`-v` で asset ごと） |
 
 - `<name>` には asset ID（`mattpocock/tdd`、`local/pi`）か短い名前（`tdd`、`pi`）を指定します。短い名前が複数に当てはまる場合はエラーになり、候補を表示します。
+- 配布先を外すと、そこへ配布したファイル（`.catalog-applied.toml` に記録したもの）と Pi の `APPEND_SYSTEM.md` の配布区画を削除します。外した配布先は以後 `agents` の対象にならないため、古い skill が残り続けないようにしています。最後の 1 つは外せません。
 - `agents`・`agents diff`・`agents up` は `-H <harness>` で配布先を、`-k <kind>` で種類を一時的に変えられます。カンマ区切りで複数、`all` で全部を指定できます。
   - harness：`cursor`、`opencode`、`omp`、`pi`、`shared`、`hermes`、`claude`
   - kind：`skill`、`agent`、`context`
@@ -112,11 +115,25 @@ harness-sessions = true
 - `[external]`：`sources.toml` の asset ID。セクションがないときは外部 asset をすべて配布し、あるときは `true` だけ配布します。追記する値は、セクションがあれば `false`、なければ `true` です。
 - `[skills]` / `[agents]` / `[context]`：このリポジトリ直下の local asset。`true` だけ配布します。新しい `skills/<name>/SKILL.md` は `false` で追記します。ドットを含む名前は引用符で囲みます（例：`"AGENTS.md" = true`）。
 
-値は `agents on` / `agents off` で書き換えられます。手で編集してもかまいません。
+値は `agents pick`、`agents on` / `agents off` で書き換えられます。手で編集してもかまいません。
 
 `sources.toml` から消えた ID や、リポジトリから消えた local asset の設定は削除せずに残し、配布の対象から外します。`agents ls` が `! ignored setting` として表示します。
 
 以前の `apply.local.toml` は廃止しました。残っているとエラーになるので、`default_harnesses` の値を `[apply] harnesses` へ移してから削除してください。
+
+### agents pick の操作
+
+| キー | 動作 |
+|---|---|
+| `j` / `k`、`↑` / `↓`、`PgUp` / `PgDn`、`g` / `G` | 移動 |
+| `Space`（または `x`） | オン・オフ切り替え（変更した行に `*`） |
+| `a` | カーソルのある群（表示中の項目）をまとめて切り替え |
+| `/` | 絞り込み（`Enter` で確定、`Esc` で解除） |
+| `Tab` | 次の群へ移動 |
+| `Enter` | 保存して終了。差分の件数を表示し、`[Y/n]` で配布するか確認する |
+| `q` / `Esc` / `Ctrl-C` | 保存せずに終了 |
+
+端末でないとき（パイプやスクリプト）はエラーで終了します。その場合は `agents on` / `off` を使います。
 
 ### 特定の配布先から local skill を外す
 
