@@ -38,8 +38,8 @@ ponytailのskillは公式リポジトリをcommit `ebd8654c2c627f721eb8f9c0d1bd4
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 6本の skill tree は直前の pin `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）と同一です。進めた差分は、取り込まない hook の stdin の UTF-8 decode と band import の修正、README の Braids です。
 
-yomiyasuのskillは公式リポジトリをcommit `c49d5f1bee91258e33e1febc3569c6c87be7669e`（v3.2.3）で固定して取り込みます。
-直前の pin `db78b9bc5e868549b517a037df7a4d1c93edac23`（v3.1.0）から、配布する差分は SKILL.md の version と読点の残し方、references の強調語と slop catalog、lint の読点判定、diff の保証・再発防止の誓いの比較です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
+yomiyasuのskillは公式リポジトリをcommit `ddf365b5d5b36a7aa4ffab798dce1b694dbb1afd`（v3.3.0）で固定して取り込みます。
+直前の pin `c49d5f1bee91258e33e1febc3569c6c87be7669e`（v3.2.3）から、配布する差分は SKILL.md の version、主語と述語が離れた文の語順、種類を指定しないときの pause_comma、calque の「段」と「門」、入れ子の文で主語の役が入れ替わった推敲の diff です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
 スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
 frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。

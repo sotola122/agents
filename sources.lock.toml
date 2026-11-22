@@ -409,8 +409,8 @@ source_is_file = false
 [[assets]]
 id = "nanaism/yomiyasu"
 source = "yomiyasu"
-rev = "c49d5f1bee91258e33e1febc3569c6c87be7669e"
-export_hash = "81fa2fc72bbe69a8d02154dbfa475a16c20ffd284ba947748bd7f491b3a156ef"
+rev = "ddf365b5d5b36a7aa4ffab798dce1b694dbb1afd"
+export_hash = "e0398760e8d25d16c10d0b07fc7a5e0171e0f5ca6ea56bca743483fd16e32313"
 target = "skills/yomiyasu"
-cache = ".cache/sources/yomiyasu/c49d5f1bee91258e33e1febc3569c6c87be7669e/yomiyasu"
+cache = ".cache/sources/yomiyasu/ddf365b5d5b36a7aa4ffab798dce1b694dbb1afd/yomiyasu"
 source_is_file = false
