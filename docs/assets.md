@@ -38,14 +38,14 @@ ponytailのskillは公式リポジトリをcommit `ebd8654c2c627f721eb8f9c0d1bd4
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 6本の skill tree は直前の pin `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）と同一です。進めた差分は、取り込まない hook の stdin の UTF-8 decode と band import の修正、README の Braids です。
 
-yomiyasuのskillは公式リポジトリをcommit `ddf365b5d5b36a7aa4ffab798dce1b694dbb1afd`（v3.3.0）で固定して取り込みます。
-直前の pin `c49d5f1bee91258e33e1febc3569c6c87be7669e`（v3.2.3）から、配布する差分は SKILL.md の version、主語と述語が離れた文の語順、種類を指定しないときの pause_comma、calque の「段」と「門」、入れ子の文で主語の役が入れ替わった推敲の diff です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
+yomiyasuのskillは公式リポジトリをcommit `fbd4e420fb71a6ba90f475898cf611ccb6a08cb2`（v3.4.0）で固定して取り込みます。
+直前の pin `ddf365b5d5b36a7aa4ffab798dce1b694dbb1afd`（v3.3.0）から、配布する差分は SKILL.md の version、スライド見出しの slide_comma、入れ子の主語の誤検知の修正、午前・午後と話題の入れ替わりなどの diff です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
 スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
 frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
 
-mattpocock/skills は commit `abeeaf95660ba9e8b7c753eb38f441ca707a8823` で固定します。
-登録済み skill の tree は直前の pin `5863806dd4e15c63174bee4e7515a4256792ecfa` と同一です。進めた差分は、未登録の in-progress `software-factory` の frontmatter を YAML として引用したことと、その検査を CI に足したことです。登録しません。`chief-of-staff` も未登録のままです。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
+mattpocock/skills は commit `d65391149dbb5fe76478e76fa8d5122b2aa5a70e` で固定します。
+登録済み skill の tree は直前の pin `abeeaf95660ba9e8b7c753eb38f441ca707a8823` と同一です。進めた差分は、未登録の in-progress `chief-of-staff` の委譲と記録の文言だけです。登録しません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
