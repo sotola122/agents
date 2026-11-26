@@ -44,13 +44,42 @@ def _head_meta() -> str:
 HEAD_META = _head_meta()
 
 
-def lang_attr(text: str) -> str:
-    """原文の引用に付ける言語の名乗り。ページは lang="ja" なので、名乗らない英文は日本語の書体の選び方と
-    日本語の読み上げで扱われる。仮名も漢字も無くラテン文字のある文だけを en と名乗る。原文はほぼ英語か日本語で、
-    ほかの言語を見分ける判定は持たない（フランス語の原文も en と名乗る）"""
-    if re.search(r"[぀-ヿ㐀-鿿]", text) or not re.search(r"[A-Za-z]", text):
+# Explicit lang values must be a BCP 47 language plus subtags. Only letters,
+# digits, and hyphens are accepted so a quote cannot inject another attribute.
+_LANG_TAG = re.compile(r"[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*")
+_RTL_LANGS = frozenset({"ar", "he", "fa", "ur"})
+
+
+def lang_attr(text: str, lang: str | None = None) -> str:
+    """Language attribute for an original quotation. Right-to-left languages also get dir="auto".
+
+    The page is lang="ja", so an unmarked foreign sentence uses Japanese fonts and
+    Japanese speech. Use lang when it is a safe BCP 47 tag. Otherwise detect the
+    script: Arabic, Hebrew, Hangul, and Cyrillic become ar, he, ko, and ru; Han
+    without kana becomes zh; kana stays unmarked Japanese; Latin-only text becomes
+    en. Latin languages such as French cannot be told apart from English by script,
+    and Persian or Urdu is marked ar. Set lang on the excerpt when the script guess
+    is wrong.
+    """
+    if isinstance(lang, str) and _LANG_TAG.fullmatch(lang.strip()):
+        tag = lang.strip()
+        rtl = ' dir="auto"' if tag.split("-")[0].lower() in _RTL_LANGS else ""
+        return f' lang="{tag}"{rtl}'
+    if re.search(r"[\u0600-\u06ff]", text):
+        return ' lang="ar" dir="auto"'
+    if re.search(r"[\u0590-\u05ff]", text):
+        return ' lang="he" dir="auto"'
+    if re.search(r"[\uac00-\ud7af]", text):
+        return ' lang="ko"'
+    if re.search(r"[\u0400-\u04ff]", text):
+        return ' lang="ru"'
+    if re.search(r"[\u3040-\u30ff]", text):
         return ""
-    return ' lang="en"'
+    if re.search(r"[\u4e00-\u9fff]", text):
+        return ' lang="zh"'
+    if re.search(r"[A-Za-z\u00c0-\u024f\u1e00-\u1eff]", text):
+        return ' lang="en"'
+    return ""
 
 
 # 紙の上の役割は文書の明るい組（DOC_LIGHT）。コルクの上に直接置く字（ページの末尾）は on-cork
@@ -59,7 +88,7 @@ SKIN_VARS = (palette.css_vars(palette.DOC_LIGHT)
                                  "pin-dark": "walnut-2", "on-cork": "ivory-5"}))
 
 CSS = """
-:root{@@VARS@@--head:@@HEAD@@,"Hiragino Mincho ProN","Yu Mincho",serif;--serif:"Noto Serif JP","Hiragino Mincho ProN","Yu Mincho",serif;color-scheme:light}
+:root{@@VARS@@--head:@@HEAD@@,"Hiragino Mincho ProN","Yu Mincho",serif;--serif:"Noto Serif JP","Noto Serif SC","Noto Serif KR","Hiragino Mincho ProN","Yu Mincho",serif;color-scheme:light}
 *{box-sizing:border-box}
 html{background:var(--cork)}
 body{margin:0;background-color:var(--cork);background-image:@@CORK@@;background-size:240px 240px;color:var(--ink);

@@ -1,7 +1,7 @@
 # Basis for Deepsearch
 
 This reference preserves the rationale and observations recorded by upstream
-[imozuru](https://github.com/MaryCache/imozuru/tree/30c3b59a076ce228f05aa3036809297422f23dee).
+[imozuru](https://github.com/MaryCache/imozuru/tree/d33a9d8b261293b6051ec74f135f6b726d58b1be).
 The upstream author collected the originals during a 2026-10-09 trial on search
 methods. These are upstream source claims and trial observations, not new
 verification performed for this adaptation.
@@ -39,6 +39,7 @@ checking a rule. Revisit the original passage before changing the rule it suppor
 | Estimate unseen material from overlap between independent searches (capture-mark-recapture). | Kastner et al. 2007, “Estimating the Horizon of Articles to Decide When to Stop Searching” | `kastner-2007-horizon-estimate.md`, line 51 |
 | Resolve unfamiliar terms from broad to narrow: encyclopedias, specialist dictionaries, textbooks/lectures, surveys, originals. | Sho Yokoi 2017, “Examine the meaning of unknown terms” | `eumesy-unknown-terms.md`, lines 343–373 |
 | Choose the next lead by information scent. | Pirolli & Card 1999, “Information foraging”, DOI 10.1037/0033-295x.106.4.643 | Original not obtained (paywalled); an LLM application is in `arxiv-2505.09316-scent-of-knowledge.txt` |
+| Put a short quiz at the end of each explanation level. Practice testing retains more than rereading. | Dunlosky et al. 2013 | Basis for the optional `quiz` field in `digest.json` |
 
 ## Upstream workflow observations
 

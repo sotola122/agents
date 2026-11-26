@@ -14,8 +14,9 @@ Big Bang の初回・継続待機は10分以上とし、タイムアウト後は
 ページ数は設計内容に応じて決め、ユーザーがページ数を指定した場合のみその指定に従います。シーケンス図やクラス図などの図はMermaidで記述します。
 既存環境では `agents on harness-sessions design-docs` を実行してから `agents diff` / `agents` を実行します。
 
-`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `30c3b59a076ce228f05aa3036809297422f23dee` を基にしたローカルスキルです。
-取り込み済みの修正には、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外と手元・内側の宛先の拒否、つなぐ直前の引き直しと IPv6 から IPv4 への短い待ち、PMC を Europe PMC の全文 XML から取ること、YouTube 自動字幕を動画の元の言語に限ること、和文が3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査、検索結果の URL・本文・フィードを他人の入力として扱う検査、OCR の言語選択と低い確信度の拒否、止めたあとの詳細レポート（`digest.py`）、原文の改行を LF にそろえること、Markdown の箇条書きにまたがる抜き書きの照合、保存先に同名フォルダがあるときの拒否、`pdftotext` が無いときの pdfminer.six、数の直前の負号を落とした抜き書きの拒否、双方向制御文字をエスケープした保存名の検査、取得記録への時刻、Playwright で外のページを開くときの明示的なサンドボックス（起動できなければ `--no-sandbox` を足さずユーザーのブラウザへ切り替える）が含まれます。履歴を横断するダッシュボード（`dashboard.py`）は、調査1件の手順に使わないため同梱していません。
+`deepsearch` は [MaryCache/imozuru](https://github.com/MaryCache/imozuru) の commit `d33a9d8b261293b6051ec74f135f6b726d58b1be`（2.3.3）を基にしたローカルスキルです。
+直前の適応元 `30c3b59a076ce228f05aa3036809297422f23dee` から、gzip の展開、一時障害の再試行、DOI または PMCID が一致する公開版と HAL `/document` の取り直し、ハングルを含む PDF の下限、字幕の `DEEPSEARCH_YT_LANGS`、非分かち書き題名の引き直し、引用照合の NFC、言語の `lang` 属性、ブラウザ保存を取り込む `ingest.py` を足しています。手順の詳細は `references/tools.md`、`references/multilingual.md`、`references/output-formats.md`、`references/watch.md` に分け、調査の保存先は作業プロジェクト内の `.research/<topic>/` のままです。
+取り込み済みの修正には、日本語を含む URL と W で始まる題名での停止回避、http(s) 以外と手元・内側の宛先の拒否、つなぐ直前の引き直しと IPv6 から IPv4 への短い待ち、PMC を Europe PMC の全文 XML から取ること、YouTube 自動字幕を動画の元の言語に限ること、和文・中文・ハングルが3割を超える PDF の下限 1,000 字、保存名と抜き書きパスの境界検査、検索結果の URL・本文・フィードを他人の入力として扱う検査、OCR の言語選択と低い確信度の拒否、止めたあとの詳細レポート（`digest.py`）、原文の改行を LF にそろえること、Markdown の箇条書きにまたがる抜き書きの照合、保存先に同名フォルダがあるときの拒否、`pdftotext` が無いときの pdfminer.six、数の直前の負号を落とした抜き書きの拒否、双方向制御文字をエスケープした保存名の検査、取得記録への時刻、Playwright で外のページを開くときの明示的なサンドボックス（起動できなければ `--no-sandbox` を足さずユーザーのブラウザへ切り替える）が含まれます。履歴を横断するダッシュボード（`dashboard.py`）は、調査1件の手順に使わないため同梱していません。
 スキル本文・補足資料・コード内の説明は英語にし、調査結果・調査マップ・HTMLレポートは日本語で出力します。引用原文は保持し、日本語訳を添えます。
 調査資料は作業プロジェクト内の `.research/<topic>/` に保存します。`/deepsearch <topic>` で原典をたどる調査、`/deepsearch watch <topic>` で登録したRSS/Atomの新着を確認できます。
 資料取得・引用照合・更新確認・引用追跡のスクリプトとMITライセンスを同梱しています。
@@ -38,14 +39,14 @@ ponytailのskillは公式リポジトリをcommit `ebd8654c2c627f721eb8f9c0d1bd4
 6本（`ponytail`、`ponytail-review`、`ponytail-audit`、`ponytail-debt`、`ponytail-gain`、`ponytail-help`）を `sources.toml` に記載し、既定の有効化は `ponytail` と `ponytail-review` のみです。
 6本の skill tree は直前の pin `96608e078b2d5ea607c5c3b8b5a54d1c1fba6846`（v5.3.3）と同一です。進めた差分は、取り込まない hook の stdin の UTF-8 decode と band import の修正、README の Braids です。
 
-yomiyasuのskillは公式リポジトリをcommit `fbd4e420fb71a6ba90f475898cf611ccb6a08cb2`（v3.4.0）で固定して取り込みます。
-直前の pin `ddf365b5d5b36a7aa4ffab798dce1b694dbb1afd`（v3.3.0）から、配布する差分は SKILL.md の version、スライド見出しの slide_comma、入れ子の主語の誤検知の修正、午前・午後と話題の入れ替わりなどの diff です。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
+yomiyasuのskillは公式リポジトリをcommit `3979c750b5e1fe9892bd47bb354f0fb51d534ff2`（v3.4.1）で固定して取り込みます。
+直前の pin `fbd4e420fb71a6ba90f475898cf611ccb6a08cb2`（v3.4.0）から、配布する差分は version、diff が再び出す時刻・負号・入れ子の主語・保証の候補、▲△ の読み、slide_comma の切り出しです。ファイルの追加と削除はなく、path は `skills/yomiyasu` のままです。
 スキル本体は `skills/yomiyasu/` にあり、SKILL.md の相対参照（references/・scripts/・assets/）をそのまま配布します。
 lint が Unicode 由来の絵文字表を埋め込んでいるため、skill ディレクトリ内の `LICENSE`（MIT）と `UNICODE-LICENSE.txt`（Unicode License V3。リポジトリルートと同一）も一緒に配布します。vendored の本文は編集しません。
 frontmatter の `allowed-tools` は Claude Code 向けで、スクリプト経路に `${CLAUDE_SKILL_DIR}` を使います。Claude Code 以外ではこの変数は展開されないため、SKILL.md の指示どおりスキルディレクトリの絶対パスに置き換えて実行します。
 
-mattpocock/skills は commit `d65391149dbb5fe76478e76fa8d5122b2aa5a70e` で固定します。
-登録済み skill の tree は直前の pin `abeeaf95660ba9e8b7c753eb38f441ca707a8823` と同一です。進めた差分は、未登録の in-progress `chief-of-staff` の委譲と記録の文言だけです。登録しません。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
+mattpocock/skills は commit `6f7f7831a625f040a8e06a0e7954826b87ce775a` で固定します。
+直前の pin `d65391149dbb5fe76478e76fa8d5122b2aa5a70e` から、登録済み skill で変わったのは `domain-modeling` の用語定義の中で他の用語を太字にする指示です。`chief-of-staff` は未登録のままです。`ask-matt` は `chief-of-staff` へ経路を持たないため、その skill は pin しません。
 upstream は `resolving-merge-conflicts` を `daa01d8` で削除しました。archived のドキュメントは「後継 skill はない」と明記しているため、その path は再登録しません。
 `d81f3a183412` で engineering に昇格した `implement-spec`、`pr`、`retro` を登録し、`ask-matt` が指す経路と揃えています。既定の有効化はいずれも `true` です。
 domain 文書のファイル名は、外部 skill の指示上 `CONTEXT.md` / `CONTEXT-MAP.md` から `GLOSSARY.md` / `GLOSSARY-MAP.md` に変わっています。
